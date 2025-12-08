@@ -142,11 +142,13 @@ class AhoCorasick
         vector < vector < int > > search ( const string &s )
         {
             vector < vector < int > > res(sz(s)) ; // at Si which patterns matched
+            // vector < vector < int > > res(sizeOfPatterns) ; // at pattern i which idx are matched
+            
             Node *cur = root ;
 
             for ( int i = 0 ; i < sz(s) ; i ++ )
             {
-                int c = s[i] - 'a' ;
+                int c = Node::getIdx( s[i] ) ;
 
                 while ( cur != root && !cur->child[c] ) cur = cur->fail ;
                 
@@ -158,6 +160,7 @@ class AhoCorasick
                     // cur->patIdx[j] idx for matched pattern
 
                     res[i].push_back(cur->patIdx[j]);
+                    // res[cur->patIdx[j]].push_back(i);
                 }
             }
 
