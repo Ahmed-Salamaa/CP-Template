@@ -26,6 +26,8 @@ void fastio()
     freopen("input.txt", "r", stdin), freopen("output.txt", "w", stdout);
 #endif
 }
+
+
 struct SuffixArray
 {
     #define all(x) x.begin(), x.end()
@@ -206,12 +208,12 @@ struct SuffixArray
     }
 
     // longest common substring of the string and the pattern
-    inline string longest_common_substring(const string &s, const string &t)
+    static inline string longest_common_substring(const string &s, const string &t)
     {
         string st = s + "#" + t + "$";
         SuffixArray sa(st);
         int n = sz(s), ans = 0, idx = 0;
-        for (int i = 1; i < sz(st); i++)
+        for (int i = 1; i < sa.n; i++)
         {
             if ((sa.p[i] < n and sa.p[i - 1] > n) or (sa.p[i] > n and sa.p[i - 1] < n))
             {
@@ -277,6 +279,8 @@ struct SuffixArray
         return ans;
     }
 };
+
+
 
 void solve(int tc)
 {
