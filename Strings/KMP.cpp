@@ -2,6 +2,8 @@
 using namespace std;
 #define sz(x) (int)(x.size())
 
+
+
 struct KMP {
     string pattern;
     vector<int> lp;
@@ -55,3 +57,4 @@ struct KMP {
         return indexes;
     }
 };
+

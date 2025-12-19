@@ -22,6 +22,11 @@ struct Hash {
         initialize_static();
     }
 
+    Hash( int size ) : rng(chrono::steady_clock::now().time_since_epoch().count()) {
+        initialize_static();
+        initialize(size);
+    }
+
     Hash(const string& s) : rng(chrono::steady_clock::now().time_since_epoch().count()) {
         initialize_static();
         initialize(s.size());
@@ -84,27 +89,89 @@ struct Hash {
         }
     }
 
-    inline pair<T, T> sub(int l, int r) const {
+    static pair<long long,long long> hash ( const string& s )
+    {
+        int n = s.size() ;
+        long long h1 = 0 , h2 = 0;
+        for (int i = 1; i <= n; ++i) 
+        {
+            h1 = (h1 * p1 + s[i - !Base]) % m1 ;
+            h2 = (h2 * p2 + s[i - !Base]) % m2 ;
+        }
+        return { h1 , h2 } ;
+    }
+
+    static pair<long long,long long> hash ( const vector<T>& s )
+    {
+        int n = s.size() ;
+        long long h1 = 0 , h2 = 0;
+        for (int i = 1; i <= n; ++i) 
+        {
+            h1 = (h1 * p1 + s[i - !Base]) % m1 ;
+            h2 = (h2 * p2 + s[i - !Base]) % m2 ;
+        }
+        return { h1 , h2 } ;
+    }
+
+    inline pair<T, T> query(int l, int r) const {
         T F = (h1[r] - (h1[l - 1] * pow1[r - l + 1] % m1) + m1) % m1;
         T S = (h2[r] - (h2[l - 1] * pow2[r - l + 1] % m2) + m2) % m2;
         return {F, S};
     }
 
     inline pair<T, T> merge_hash(int l1, int r1, int l2, int r2) const {
-        auto a = sub(l1, r1), b = sub(l2, r2);
+        auto a = query(l1, r1), b = query(l2, r2);
         T F = ((a.first * pow1[r2 - l2 + 1]) + b.first) % m1;
         T S = ((a.second * pow2[r2 - l2 + 1]) + b.second) % m2;
         return {F, S};
     }
 
     inline pair<T, T> at(int idx) const {
-        return sub(idx, idx);
+        return query(idx, idx);
     }
 
     inline bool equal(int l1, int r1, int l2, int r2) const {
-        return sub(l1, r1) == sub(l2, r2);
+        return query(l1, r1) == query(l2, r2);
+    }
+
+    // return change only not save it
+    inline pair<T, T> change(int idx, int val) const 
+    {
+        pair<T,T> res;
+
+        if (idx == 1) 
+        {
+            auto suf = query(2, n);
+            res.first  = (val * pow1[n-1] + suf.first) % m1;
+            res.second = (val * pow2[n-1] + suf.second) % m2;
+        }
+        else if (idx == n) 
+        {
+            auto pre = query(1, n-1);
+            res.first  = (pre.first * pow1[1] + val) % m1;
+            res.second = (pre.second * pow2[1] + val) % m2;
+        }
+        else 
+        {
+            auto pre = query(1, idx-1);
+            auto suf = query(idx+1, n);
+            int len = n - idx;
+
+            res.first =
+                ( (pre.first * pow1[len+1]) % m1
+                + (val * pow1[len]) % m1
+                + suf.first ) % m1;
+
+            res.second =
+                ( (pre.second * pow2[len+1]) % m2
+                + (val * pow2[len]) % m2
+                + suf.second ) % m2;
+        }
+        return res;
     }
 };
+
+
 
 template <typename T, int Base>
 constexpr array<T, 6> Hash<T, Base>::powers;
@@ -118,3 +185,5 @@ template <typename T, int Base>
 T Hash<T, Base>::m1 = 0;
 template <typename T, int Base>
 T Hash<T, Base>::m2 = 0;
+
+
