@@ -171,6 +171,8 @@ public:
 
 };
 
+
+
 void Accepted(){
 
   int q;

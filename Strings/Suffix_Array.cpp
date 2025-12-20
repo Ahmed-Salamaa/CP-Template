@@ -234,7 +234,7 @@ struct SuffixArray
         return min(mn[l + 1][k], mn[r - (1 << k) + 1][k]);
     }
     // return the kth smallest substring in the string
-    inline string kth_substring(ll k, string s, vector<int> p)
+    inline string kth_substring(ll k)
     {
         auto pos = p, cur = p;
         int piv = 0, n = sz(s);
