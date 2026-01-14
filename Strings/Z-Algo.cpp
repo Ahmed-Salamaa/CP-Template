@@ -73,7 +73,7 @@ struct Zfunctions
     {
         for (int i = 0; i < sz(z.z); i++)
         {
-            out << z.z[i] << sp;
+            out << z.z[i] << " " ;
         }
         return out;
     }
@@ -85,7 +85,7 @@ struct Zfunctions
         int maxMatch = 0;
         for (int i = 1, l = 0, r = 0; i < s.size(); i++)
         {
-            z[i] = max(0, min(z[i - l], r - i + 1));
+            z[i] = max(0ll, min(z[i - l], r - i + 1));
      
             while (i + z[i] < s.size() && s[z[i]] == s[i + z[i]])
             {

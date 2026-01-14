@@ -138,7 +138,7 @@ template <typename T = int> class Binary_Trie {
         }
 
     public:
-        Binary_Trie(int log = 31) : root(new Node()), LOG(log) {} , cnt (0) {} ;
+        Binary_Trie(int log = 31) : root(new Node()), LOG(log) , cnt (0) {} ;
 
         inline bool get_bit(const T x, const int bit) const { return (x >> bit) & 1; }
 

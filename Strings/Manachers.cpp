@@ -44,6 +44,25 @@ struct manacher {
         if (len & 1) return getLongest(cen, true) >= len;
         return getLongest(cen, false) >= len;
     }
+    string get_Longest_Palindrome ()
+    {
+        int idx = 0 ;
+        for ( int i = 0 ; i < sz ( s ) ; i ++ )
+        {
+            if ( p[i] > p[idx] )
+                idx = i ;
+        }
+
+        string ans = s.substr( idx - p[idx] + 1 , p[idx] - 1 ) + s.substr( idx , p[idx] - 1 ) ;
+        string res ;
+        for ( auto it : ans )
+            if ( it != '#' ) res.push_back( it );
+        return res ;
+    }
+    int get_Longest_Palindrome ()
+    {
+        return *max_element( all ( ds.p ) ) - 1 ;
+    }
 };
 
 void solve() {

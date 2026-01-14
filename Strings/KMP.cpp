@@ -7,6 +7,7 @@ using namespace std;
 struct KMP {
     string pattern;
     vector<int> lp;
+    vector < vector <int> > failureTable ;
 
     KMP(const string &str = "") : pattern(str) { build(); }
 
@@ -20,6 +21,41 @@ struct KMP {
         while (idx > 0 && pattern[idx] != nxt) idx = lp[idx - 1];
         return idx + (pattern[idx] == nxt);
     }
+
+    void failure_Table_build ()
+    {
+        int n = pattern.size() ;
+
+        failureTable.assign( n + 1 , vector <int> ( 26 ) ) ;
+
+        for ( int i = 0 ; i <= n ; i ++ )
+        {
+            for ( char c = 'a' ; c <= 'z' ; c ++ )
+            {
+                if (i > 0 && c != pattern[i])
+                    failureTable[i][c-'a'] = failureTable[lp[i-1]][c-'a'];
+                else
+                    failureTable[i][c-'a'] = i + (c == pattern[i]);    
+            }
+        }   
+    }
+
+    // get next fail idx if I am at character `c` , thats verv fast if you use dp
+    int get_next_fail_idx ( int fail , char c )
+    {
+        int new_fail = failureTable[fail][ c - 'a' ] ;
+        return new_fail ;
+
+    } ;
+
+    // used in dp
+    // auto calc = [&]( char c )
+    // {
+    //     int new_fail = kmp[fail][ c - 'a' ] ;
+    //     int add = ( new_fail == n ? 1 : 0 ) ;
+    //     return add + last_dp[new_fail == n ? kmp[ n - 1 ][ c - 'a' ] : new_fail] ;
+    // } ;
+
 
     vector<int> match(const string &str) {
         int n = sz(str), m = sz(pattern);
@@ -57,4 +93,7 @@ struct KMP {
         return indexes;
     }
 };
+
+
+
 
