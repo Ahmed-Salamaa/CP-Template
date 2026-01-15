@@ -9,7 +9,7 @@ class MO
 {
     private :
 
-        const int Block_Size = 450 ;
+        const static int Block_Size = 450 ;
 
         struct node 
         {
@@ -50,7 +50,7 @@ class MO
 
     public :
 
-        MO ( vector <T> arr , int q ) : arr ( arr ) , n ( arr.size() - 1 ) , ans (0) 
+        MO ( const vector <T> & arr , int q ) : arr ( arr ) , n ( arr.size() - 1 ) , ans (0) 
         {
             query.resize( q ) ;
             answer.resize( q ) ;
@@ -78,7 +78,7 @@ class MO
                 while ( right < r ) add ( ++ right ) ;
                 while ( right > r ) remove( right -- ) ;
 
-                ans[idx] = ans ;
+                answer[idx] = ans ;
             }
         }
 
