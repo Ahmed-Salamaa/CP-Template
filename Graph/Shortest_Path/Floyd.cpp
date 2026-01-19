@@ -20,6 +20,12 @@ template <typename T = int, int Base = 0> struct Floyd {
                 for (int v = Base; v < n + Base; v++) dist[u][v] = operation(dist[u][v], dist[u][i] + dist[i][v]);
     }
 
+    void build( int i ) 
+    {
+        for (int u = Base; u < n + Base; u++)
+            for (int v = Base; v < n + Base; v++) dist[u][v] = operation(dist[u][v], dist[u][i] + dist[i][v]);
+    }
+
     T get_dist(int u, int v) { return dist[u][v]; }
 
     void update_dist(int u, int v, int a, int b) {
