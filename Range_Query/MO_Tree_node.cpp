@@ -199,7 +199,7 @@ class MoTree
         void process() 
         {
             sort( all ( queries ) ) ;
-            init ()
+            init () ;
             
             // start with the first query
             left = queries[0].l , right = queries[0].l - 1 ;

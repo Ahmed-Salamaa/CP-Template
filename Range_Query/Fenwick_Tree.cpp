@@ -15,7 +15,7 @@ template <typename T> class Fenwick_Tree
     Fenwick_Tree(int n, const vector<T> &arr) : n(n) {
         BIT.assign(n + 1, 0);
         for (int i = 1; i <= n; i++) {
-            BIT[i] = arr[i];
+            add(i, arr[i]);
         }
     }
     Fenwick_Tree(int n) : n(n) {
