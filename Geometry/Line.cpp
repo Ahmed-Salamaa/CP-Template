@@ -1,5 +1,12 @@
+// Line Template
+// Dependencies: Point.cpp (must be included before this file)
+// Usage: Include Point.cpp first, then this file
+
 #include <bits/stdc++.h>
 using namespace std;
+
+const double PI = acos(-1.0);
+
 
 template <typename t>
 struct line
@@ -208,4 +215,79 @@ public:
 
         return { c, { slope_y, slope_x } };
     }
+
+    // ---------- Parallel & Perpendicular ----------
+    // Check if two lines are parallel
+    static bool are_parallel(const line<t>& l1, const line<t>& l2)
+    {
+        t det = l1.A_ * l2.B_ - l2.A_ * l1.B_;
+        return abs(det) < 1e-9;
+    }
+
+    // Check if two lines are perpendicular
+    static bool are_perpendicular(const line<t>& l1, const line<t>& l2)
+    {
+        t dot = l1.A_ * l2.A_ + l1.B_ * l2.B_;
+        return abs(dot) < 1e-9;
+    }
+
+    // Get perpendicular line through a point
+    line<t> perpendicular(const point<t>& p) const
+    {
+        // direction vector of current line
+        point<t> dir = b - a;
+        // perpendicular direction
+        point<t> perp_dir = dir.perp();
+        return line<t>(p, p + perp_dir);
+    }
+
+    // Get parallel line through a point
+    line<t> parallel(const point<t>& p) const
+    {
+        point<t> dir = b - a;
+        return line<t>(p, p + dir);
+    }
+
+    // ---------- Segment intersection ----------
+    // Check if two segments intersect (not just lines)
+    // Returns {true, intersection_point} if they intersect
+    // Returns {false, point(0,0)} if they don't
+    static pair<bool, point<t>> segment_intersect(const line<t>& seg1, const line<t>& seg2)
+    {
+        auto [intersects, p] = intersect(seg1, seg2);
+        if (!intersects) return {false, point<t>(0, 0)};
+        
+        // Check if intersection point is on both segments
+        if (seg1.contains(p, true) && seg2.contains(p, true))
+            return {true, p};
+        
+        return {false, point<t>(0, 0)};
+    }
+
+    // Check if segments intersect (bool only)
+    static bool segments_intersect(const line<t>& seg1, const line<t>& seg2)
+    {
+        return segment_intersect(seg1, seg2).first;
+    }
+
+    // ---------- Midpoint ----------
+    point<t> midpoint() const
+    {
+        return point<t>((a.x + b.x) / (t)2, (a.y + b.y) / (t)2);
+    }
+
+    // ---------- Direction vector ----------
+    point<t> direction() const
+    {
+        return b - a;
+    }
+
+    // Normalized direction vector
+    point<t> direction_normalized() const
+    {
+        return direction().normalize();
+    }
 };
+
+
+

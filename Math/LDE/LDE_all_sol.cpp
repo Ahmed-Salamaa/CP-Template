@@ -2,6 +2,7 @@
 using namespace std;
 
 // extended euclidean algorithm and diofantian equation
+// a * x + b * y = gcd( a , b )
 int extended_gcd(int a, int b, int &x, int &y) {
     if (b == 0) {
         x = 1;
@@ -15,6 +16,7 @@ int extended_gcd(int a, int b, int &x, int &y) {
     return d;
 }
 
+// Find solution to a*x + b*y = c
 bool find_any_solution(int a, int b, int c, int &x0, int &y0, int &g) {
     g = extended_gcd(abs(a), abs(b), x0, y0);
     if (c % g) {
