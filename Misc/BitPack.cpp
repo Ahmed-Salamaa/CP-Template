@@ -107,6 +107,15 @@ namespace std
     {
         using type = T;
     };
+
+    template <size_t N, typename T>
+    struct hash<BitPack<N, T>>
+    {
+        size_t operator()(const BitPack<N, T>& p) const noexcept
+        {
+            return std::hash<T>()((T)p);
+        }
+    };
 }
 
 template <size_t I, size_t N, typename T>
