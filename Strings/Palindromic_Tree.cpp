@@ -104,7 +104,7 @@ int main(){
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    string S = "ababa";
+    string S = "ababa"; cin >> S ;
     int n = S.size();
 
     // For lowercase letters: sigma=26, base='a'

@@ -1,25 +1,27 @@
-int n; // number of vertices
-vector<vector<int>> adj; // adjacency list of graph
-vector<bool> visited;
+int n;
+vector<vector<int>> adj;
+vector<int> vis;
 vector<int> ans;
+bool bad;
 
 void dfs(int v) {
-    visited[v] = true;
+    vis[v] = 1;
     for (int u : adj[v]) {
-        if (!visited[u]) {
-            dfs(u);
-        }
+        if (vis[u] == 0) dfs(u);
+        else if (vis[u] == 1) bad = true;
     }
+    vis[v] = 2;
     ans.push_back(v);
 }
 
 void topological_sort() {
-    visited.assign(n, false);
+    vis.assign(n + 1, 0);
     ans.clear();
-    for (int i = 0; i < n; ++i) {
-        if (!visited[i]) {
+    bad = false;
+
+    for (int i = 1; i <= n; ++i)
+        if (!vis[i])
             dfs(i);
-        }
-    }
-    reverse(ans.begin(), ans.end());
+
+    reverse(all(ans));
 }

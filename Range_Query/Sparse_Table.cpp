@@ -1,4 +1,4 @@
-template < typename T = int >
+template < typename T = int , typename F = function < T ( T , T ) > >
 class Sparse_Table
 {
     private:
@@ -17,9 +17,12 @@ class Sparse_Table
         int n , LOG = 1 ;
         point def = { (T)(1e18) } ;
         vector < vector < point > > table ;
+        F func ;
 
         point calc ( point a , point b )
         {
+            if (func) return { func ( a.num , b.num ) } ;
+
             point ans ;
             ans.num = min ( a.num , b.num ) ;
             return ans ;
@@ -34,7 +37,7 @@ class Sparse_Table
 
     public:
 
-        Sparse_Table ( const vector <T> & arr )
+        Sparse_Table ( const vector <T> & arr , F f = nullptr ) : func ( f )
         {
             n = arr.size() ; LOG = __lg(n) + 1 ;
             

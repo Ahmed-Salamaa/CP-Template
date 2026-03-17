@@ -110,8 +110,6 @@ signed main() {
         arr.assign( m , 0 ) ; cin >> arr ;
         sort ( all ( arr ) ) ;
 
-        int remain = n ;
-
         auto [ before , cycle ] = floyed() ;
 
         // 1. Reduce n using the pre-period (before) and the period (cycle)
