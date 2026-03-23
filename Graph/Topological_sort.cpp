@@ -1,5 +1,5 @@
 int n;
-vector<vector<int>> adj;
+vector<vector<int>> adj; // change adj list size
 vector<int> vis;
 vector<int> ans;
 bool bad;
