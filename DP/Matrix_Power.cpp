@@ -1,6 +1,9 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+
+// note if you need to use custom Mod from runtime 
+// , you need to use deffrent idea from send it with templete 
 template <typename T = int, int MODD = 1000000007>
 struct Matrix
 {
