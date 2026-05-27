@@ -19,6 +19,9 @@ using namespace std;
 #define mult_mod(a, b) ((((a) % MOD) * ((b) % MOD)) % MOD)
 
 
+// zero based templete
+
+
 template < typename t = int >
 class SQRT
 {

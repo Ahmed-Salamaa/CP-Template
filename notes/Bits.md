@@ -4,6 +4,8 @@
 - $a \oplus (a \& b) = (a | b) \oplus b$
 - $b \oplus (a \& b) = (a | b) \oplus a$
 - $(a \& b) \oplus (a | b) = a \oplus b$
+- $(a \oplus b) = a + b - 2 ( a \& b )$
+- $ (P \oplus x) + (Q \oplus x) = r + 2 * ((P \oplus x) \& \~r ) $
 
 ## Addition:
 - $a + b = a | b + a \& b$
