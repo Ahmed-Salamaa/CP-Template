@@ -110,9 +110,9 @@ class MO
 
             for ( const auto & [ l , r , idx , _ ] : query ) 
             {
-                while ( left < l ) remove ( left ++ ) ;
-                while ( left > l ) add ( -- left ) ;
+                while ( left > l ) add ( -- left ) ;    
                 while ( right < r ) add ( ++ right ) ;
+                while ( left < l ) remove ( left ++ ) ; 
                 while ( right > r ) remove( right -- ) ;
 
                 answer[idx] = ans ;

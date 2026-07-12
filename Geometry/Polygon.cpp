@@ -1,804 +1,360 @@
-// Polygon Template (generic)
-// Dependencies: Point.cpp, Line.cpp (include them before this file)
-// Optional: Convex_Hull.cpp (required if you use unite() or diameter())
-
-// Function Dependency Index (alphabetical, direct, template-only)
-// Format:
-//   - polygon::name(args)
-//       Use: ...
-//       Depends on: ...
-//       Time: ...
-//
-// - polygon::add_point(p)
-//     Use: append vertex.
-//     Depends on: (none).
-//     Time: amortized O(1).
-//
-// - polygon::area()
-//     Use: absolute area.
-//     Depends on: signed_area() (wrapper).
-//     Time: O(n).
-//
-// - polygon::bounding_box()
-//     Use: axis-aligned bounding box.
-//     Depends on: (none).
-//     Time: O(n).
-//
-// - polygon::centroid()
-//     Use: polygon centroid (area-weighted; fallback to average).
-//     Depends on: (none).
-//     Time: O(n).
-//
-// - polygon::closest_point(p)
-//     Use: closest boundary point to p.
-//     Depends on: contains(), line<t>::distance().
-//     Time: O(n).
-//
-// - polygon::contains(p)
-//     Use: point-in-polygon (winding number).
-//     Depends on: on_boundary(), point<t>::cross_val().
-//     Time: O(n).
-//
-// - polygon::cut(line)
-//     Use: clip by a directed line (wrapper overload).
-//     Depends on: cut_by_line() (wrapper).
-//     Time: O(n).
-//
-// - polygon::cut(polygon)
-//     Use: clip by a polygon (wrapper overload).
-//     Depends on: cut_by_polygon() (wrapper).
-//     Time: O(n*m).
-//
-// - polygon::cut_by_line(line)
-//     Use: half-plane clipping by directed line.
-//     Depends on: side_value(), segment_line_intersection(), point<t>::same_point().
-//     Time: O(n).
-//
-// - polygon::cut_by_polygon(clipper)
-//     Use: clip by convex polygon (Sutherland–Hodgman).
-//     Depends on: signed_area(), cut_by_line(), side_value(), set_vertices().
-//     Time: O(n*m).
-//
-// - polygon::decrease_at_middle(factor)
-//     Use: shrink around centroid.
-//     Depends on: scale() (wrapper).
-//     Time: O(n).
-//
-// - polygon::delete_point(p)
-//     Use: delete first vertex equal to p within eps.
-//     Depends on: point<t>::same_point().
-//     Time: O(n).
-//
-// - polygon::delete_point_at(idx)
-//     Use: delete vertex at index.
-//     Depends on: (none).
-//     Time: O(n).
-//
-// - polygon::diameter()
-//     Use: max distance between any two vertices (via hull).
-//     Depends on: diameter2() (wrapper).
-//     Time: O(n log n).
-//
-// - polygon::diameter2()
-//     Use: max squared distance between any two vertices (via hull).
-//     Depends on: cp_geometry::convex_hull_points(), point<t>::cross_val().
-//     Time: O(n log n).
-//
-// - polygon::distance_to(p)
-//     Use: min distance from p to polygon (0 if inside).
-//     Depends on: contains(), line<t>::distance().
-//     Time: O(n).
-//
-// - polygon::edges()
-//     Use: polygon edges as segments.
-//     Depends on: (none).
-//     Time: O(n).
-//
-// - polygon::get_vertices()
-//     Use: return copy of vertices.
-//     Depends on: (none).
-//     Time: O(n).
-//
-// - polygon::increase_at_middle(factor)
-//     Use: grow around centroid.
-//     Depends on: scale() (wrapper).
-//     Time: O(n).
-//
-// - polygon::intersect(other)
-//     Use: intersection with another convex polygon (wrapper).
-//     Depends on: cut_by_polygon() (wrapper).
-//     Time: O(n*m).
-//
-// - polygon::is_convex(strict)
-//     Use: convexity check.
-//     Depends on: point<t>::cross_val().
-//     Time: O(n).
-//
-// - polygon::on_boundary(p)
-//     Use: boundary check.
-//     Depends on: point<t>::on_segment().
-//     Time: O(n).
-//
-// - polygon::perimeter()
-//     Use: polygon perimeter.
-//     Depends on: point<t>::dist().
-//     Time: O(n).
-//
-// - polygon::polygon()
-//     Use: create empty polygon.
-//     Depends on: (none).
-//     Time: O(1).
-//
-// - polygon::polygon(vertices)
-//     Use: create polygon from vertices.
-//     Depends on: (none).
-//     Time: O(n).
-//
-// - polygon::reflect(axis)
-//     Use: reflect polygon around line.
-//     Depends on: point<t>::reflect().
-//     Time: O(n).
-//
-// - polygon::reflect_x()
-//     Use: reflect polygon across x-axis.
-//     Depends on: point<t>::reflect_x().
-//     Time: O(n).
-//
-// - polygon::reflect_y()
-//     Use: reflect polygon across y-axis.
-//     Depends on: point<t>::reflect_y().
-//     Time: O(n).
-//
-// - polygon::rotate(angle)
-//     Use: rotate around centroid.
-//     Depends on: centroid(), rotate_around() (wrapper).
-//     Time: O(n).
-//
-// - polygon::rotate_around(pivot)
-//     Use: rotate around pivot.
-//     Depends on: point<t>::rotate_around().
-//     Time: O(n).
-//
-// - polygon::scale(factor)
-//     Use: scale around centroid.
-//     Depends on: centroid(), scale_from() (wrapper).
-//     Time: O(n).
-//
-// - polygon::scale_at_middle(factor)
-//     Use: scale around centroid (wrapper).
-//     Depends on: scale() (wrapper).
-//     Time: O(n).
-//
-// - polygon::scale_from(pivot)
-//     Use: scale around pivot.
-//     Depends on: point<t>::scale_from().
-//     Time: O(n).
-//
-// - polygon::segment_line_intersection(p1,p2,a,b)
-//     Use: helper for clipping.
-//     Depends on: (none).
-//     Time: O(1).
-//
-// - polygon::set_vertices(vertices)
-//     Use: replace vertices and update n.
-//     Depends on: (none).
-//     Time: O(n).
-//
-// - polygon::side_value(a,b,p)
-//     Use: helper signed-side test.
-//     Depends on: point<t>::cross_val().
-//     Time: O(1).
-//
-// - polygon::signed_area()
-//     Use: signed area (shoelace).
-//     Depends on: (none).
-//     Time: O(n).
-//
-// - polygon::transform(Func)
-//     Use: map each vertex with a callback.
-//     Depends on: (none).
-//     Time: O(n).
-//
-// - polygon::translate(delta)
-//     Use: translate polygon.
-//     Depends on: (none).
-//     Time: O(n).
-//
-// - polygon::unite(other)
-//     Use: convex-hull union of vertices.
-//     Depends on: cp_geometry::convex_hull_points().
-//     Time: O((n+m) log(n+m)).
-//
-// - polygon::vertex(idx)
-//     Use: vertex by circular index.
-//     Depends on: (none).
-//     Time: O(1).
-
 #pragma once
+#include "Point.cpp"
+#include "Line.cpp"
+#include <vector>
+#include <cmath>
+#include <algorithm>
 
-#include <bits/stdc++.h>
-
-using namespace std;
-
-template <typename t>
-struct polygon
-{
-    vector<point<t>> vertices;
-    int n;
-
-private:
-    static long double side_value(const point<t>& a, const point<t>& b, const point<t>& p);
-    static point<t> segment_line_intersection(const point<t>& p1, const point<t>& p2, const point<t>& a, const point<t>& b);
-
-public:
-    polygon() : n(0) {}
-    polygon(const vector<point<t>>& verts) : vertices(verts), n((int)verts.size()) {}
-    void set_vertices(const vector<point<t>>& verts)
-    {
-        vertices = verts;
-        n = (int)vertices.size();
-    }
-    vector<point<t>> get_vertices() const
-    {
-        return vertices;
-    }
-    point<t> vertex(int index) const
-    {
-        if (n == 0) return point<t>(0, 0);
-        index = ((index % n) + n) % n;
-        return vertices[index];
-    }
-    void add_point(const point<t>& p)
-    {
-        vertices.push_back(p);
-        n = (int)vertices.size();
-    }
-    bool delete_point_at(int idx)
-    {
-        if (idx < 0 || idx >= n) return false;
-        vertices.erase(vertices.begin() + idx);
-        n = (int)vertices.size();
-        return true;
-    }
-    bool delete_point(const point<t>& p, long double eps = cp_geometry::EPS)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            if (point<t>::same_point(vertices[i], p, eps))
-            {
-                vertices.erase(vertices.begin() + i);
-                n = (int)vertices.size();
-                return true;
-            }
-        }
-        return false;
-    }
-    vector<line<t>> edges() const
-    {
-        vector<line<t>> result;
-        if (n < 2) return result;
-
-        result.reserve(n);
-        for (int i = 0; i < n; i++)
-        {
-            int j = (i + 1) % n;
-            result.push_back(line<t>(vertices[i], vertices[j]));
-        }
-        return result;
-    }
-    double signed_area() const;
-    double area() const;
-    double perimeter() const;
-    long double diameter2(bool keep_collinear = false) const;
-    double diameter(bool keep_collinear = false) const;
-    pair<point<t>, point<t>> bounding_box() const;
-    point<t> centroid() const;
-    bool is_convex(bool strict = false) const;
-    bool on_boundary(const point<t>& p, double tolerance = (double)cp_geometry::EPS) const;
-    bool contains(const point<t>& p, bool include_boundary = true) const;
-    double distance_to(const point<t>& p) const;
-    point<t> closest_point(const point<t>& p) const;
-    polygon<t> translate(const point<t>& delta) const;
-    polygon<t> rotate_around(const point<t>& pivot, double angle, bool in_degrees = false) const;
-    polygon<t> rotate(double angle, bool in_degrees = false) const;
-    polygon<t> scale_from(const point<t>& pivot, double factor) const;
-    polygon<t> scale(double factor) const;
-    polygon<t> scale_at_middle(double factor) const;
-    polygon<t> increase_at_middle(double factor) const;
-    polygon<t> decrease_at_middle(double factor) const;
-    polygon<t> cut_by_line(const line<t>& cutting_line, bool keep_left = true) const;
-    polygon<t> cut_by_polygon(const polygon<t>& clipper, bool keep_boundary = true) const;
-    polygon<t> cut(const line<t>& cutting_line, bool keep_left = true) const;
-    polygon<t> cut(const polygon<t>& clipper, bool keep_boundary = true) const;
-    polygon<t> intersect(const polygon<t>& other, bool keep_boundary = true) const;
-    polygon<t> unite(const polygon<t>& other, bool keep_collinear = false) const;
-    polygon<t> reflect(const line<t>& axis) const;
-    polygon<t> reflect_x() const;
-    polygon<t> reflect_y() const;
-    template <typename Func>
-    polygon<t> transform(Func func) const;
+template <typename T>
+struct polygon {
+    std::vector<point<T>> vertices;
+    polygon() {}
+    polygon(const std::vector<point<T>>& v) : vertices(v) {}
 };
 
-// -------------------- Implementations --------------------
+template <typename T>
+struct regular_polygon {
+    std::vector<point<T>> vertices;
+    int n;
+    point<T> center;
+    double radius;
 
-template <typename t>
-long double polygon<t>::side_value(const point<t>& a, const point<t>& b, const point<t>& p)
-{
-    return point<t>::cross_val(a, b, p);
-}
+    regular_polygon() : n(0), center(), radius(0.0) {}
 
-template <typename t>
-point<t> polygon<t>::segment_line_intersection(const point<t>& p1, const point<t>& p2, const point<t>& a, const point<t>& b)
-{
-    point<t> r = p2 - p1;
-    point<t> s = b - a;
-
-    long double den = (long double)r.x * (long double)s.y - (long double)r.y * (long double)s.x;
-    if (fabsl(den) <= cp_geometry::EPS) return p2;
-
-    point<t> ap = a - p1;
-    long double num = (long double)ap.x * (long double)s.y - (long double)ap.y * (long double)s.x;
-    long double tval = num / den;
-    return point<t>(
-        (t)((long double)p1.x + (long double)r.x * tval),
-        (t)((long double)p1.y + (long double)r.y * tval)
-    );
-}
-
-template <typename t>
-double polygon<t>::signed_area() const
-{
-    if (n < 3) return 0.0;
-
-    long double sum = 0.0L;
-    for (int i = 0; i < n; i++)
-    {
-        int j = (i + 1) % n;
-        sum += (long double)vertices[i].x * vertices[j].y - (long double)vertices[i].y * vertices[j].x;
+    // Time Complexity: O(n)
+    // Space Complexity: O(n)
+    regular_polygon(const point<T>& c, double r, int num_sides, double starting_angle = 0)
+        : n(num_sides), center(c), radius(r) {
+        if (n < 3) { n = 0; return; }
+        if (radius < 0) radius = -radius;
+        vertices.resize(n);
+        double angle_step = 2.0 * cp_geometry::PI / n;
+        for (int i = 0; i < n; i++) {
+            double ang = starting_angle + i * angle_step;
+            vertices[i] = point<T>((T)(center.x + radius * cos(ang)), (T)(center.y + radius * sin(ang)));
+        }
     }
-    return (double)(sum * 0.5L);
-}
 
-template <typename t>
-double polygon<t>::area() const
-{
-    return fabs(signed_area());
-}
+    // From side length and number of sides (centered at origin)
+    // Time Complexity: O(n)
+    // Space Complexity: O(n)
+    regular_polygon(int num_sides, double side_length) : n(num_sides), center(point<T>(0, 0)) {
+        if (n < 3) { n = 0; return; }
+        double s = std::sin(cp_geometry::PI / n);
+        radius = std::abs(side_length) / (2.0 * s);
+        vertices.resize(n);
+        double angle_step = 2.0 * cp_geometry::PI / n;
+        for (int i = 0; i < n; i++) {
+            double ang = i * angle_step;
+            vertices[i] = point<T>((T)(radius * std::cos(ang)), (T)(radius * std::sin(ang)));
+        }
+    }
 
-template <typename t>
-double polygon<t>::perimeter() const
-{
-    if (n < 2) return 0.0;
+    // From center, a known first vertex, and side count
+    // Time Complexity: O(n)
+    // Space Complexity: O(n)
+    regular_polygon(const point<T>& c, const point<T>& first_vertex, int num_sides) : n(num_sides), center(c) {
+        if (n < 3) { n = 0; return; }
+        radius = distance(c, first_vertex);
+        double starting_angle = std::atan2((double)(first_vertex.y - c.y), (double)(first_vertex.x - c.x));
+        vertices.resize(n);
+        double angle_step = 2.0 * cp_geometry::PI / n;
+        for (int i = 0; i < n; i++) {
+            double ang = starting_angle + i * angle_step;
+            vertices[i] = point<T>((T)(center.x + radius * std::cos(ang)), (T)(center.y + radius * std::sin(ang)));
+        }
+    }
+};
 
-    double p = 0.0;
-    for (int i = 0; i < n; i++)
-    {
+// Time Complexity: O(n)
+// Space Complexity: O(1)
+template <typename T>
+double polygon_area(const polygon<T>& poly) {
+    if (poly.vertices.size() < 3) return 0.0;
+    long double sum = 0.0L;
+    int n = poly.vertices.size();
+    for (int i = 0; i < n; i++) {
         int j = (i + 1) % n;
-        p += point<t>::dist(vertices[i], vertices[j]);
+        sum += (long double)poly.vertices[i].x * poly.vertices[j].y - (long double)poly.vertices[i].y * poly.vertices[j].x;
+    }
+    return std::fabs((double)(sum * 0.5L));
+}
+
+// Time Complexity: O(n)
+// Space Complexity: O(1)
+template <typename T>
+double polygon_perimeter(const polygon<T>& poly) {
+    double p = 0;
+    int n = poly.vertices.size();
+    for (int i = 0; i < n; i++) {
+        p += distance(poly.vertices[i], poly.vertices[(i + 1) % n]);
     }
     return p;
 }
 
-template <typename t>
-long double polygon<t>::diameter2(bool keep_collinear) const
-{
-    if (n <= 1) return 0.0L;
-
-    vector<point<t>> hull = cp_geometry::convex_hull_points(vertices, keep_collinear);
-    int m = (int)hull.size();
-
-    auto dist2 = [&](const point<t>& a, const point<t>& b) -> long double
-    {
-        long double dx = (long double)a.x - (long double)b.x;
-        long double dy = (long double)a.y - (long double)b.y;
-        return dx * dx + dy * dy;
-    };
-
-    if (m <= 1) return 0.0L;
-    if (m == 2) return dist2(hull[0], hull[1]);
-
-    long double best = 0.0L;
-    int j = 1;
-
-    for (int i = 0; i < m; i++)
-    {
-        int ni = (i + 1) % m;
-
-        while (true)
-        {
-            int nj = (j + 1) % m;
-            long double cur = point<t>::cross_val(hull[i], hull[ni], hull[j]);
-            long double nxt = point<t>::cross_val(hull[i], hull[ni], hull[nj]);
-
-            // For CCW convex hull, cross_val is non-negative up to eps.
-            if (nxt > cur + cp_geometry::EPS) j = nj;
-            else break;
-        }
-
-        best = max(best, dist2(hull[i], hull[j]));
-        best = max(best, dist2(hull[ni], hull[j]));
-    }
-
-    return best;
-}
-
-template <typename t>
-double polygon<t>::diameter(bool keep_collinear) const
-{
-    return sqrt((double)diameter2(keep_collinear));
-}
-
-template <typename t>
-pair<point<t>, point<t>> polygon<t>::bounding_box() const
-{
-    if (n == 0) return {point<t>(0, 0), point<t>(0, 0)};
-
-    t min_x = vertices[0].x, max_x = vertices[0].x;
-    t min_y = vertices[0].y, max_y = vertices[0].y;
-
-    for (const auto& v : vertices)
-    {
-        min_x = min(min_x, v.x);
-        max_x = max(max_x, v.x);
-        min_y = min(min_y, v.y);
-        max_y = max(max_y, v.y);
-    }
-
-    return {point<t>(min_x, min_y), point<t>(max_x, max_y)};
-}
-
-template <typename t>
-point<t> polygon<t>::centroid() const
-{
-    if (n == 0) return point<t>(0, 0);
-
-    long double a2 = 0.0L;
-    long double cx = 0.0L;
-    long double cy = 0.0L;
-
-    for (int i = 0; i < n; i++)
-    {
+// Time Complexity: O(n)
+// Space Complexity: O(1)
+template <typename T>
+point<double> polygon_centroid(const polygon<T>& poly) {
+    double cx = 0, cy = 0;
+    double area2 = 0;
+    int n = poly.vertices.size();
+    for (int i = 0; i < n; i++) {
         int j = (i + 1) % n;
-        long double cross = (long double)vertices[i].x * vertices[j].y - (long double)vertices[j].x * vertices[i].y;
-        a2 += cross;
-        cx += ((long double)vertices[i].x + vertices[j].x) * cross;
-        cy += ((long double)vertices[i].y + vertices[j].y) * cross;
+        double cross = cross_product(poly.vertices[i], poly.vertices[j]);
+        area2 += cross;
+        cx += (poly.vertices[i].x + poly.vertices[j].x) * cross;
+        cy += (poly.vertices[i].y + poly.vertices[j].y) * cross;
     }
-
-    if (fabsl(a2) <= cp_geometry::EPS)
-    {
-        long double sx = 0.0L, sy = 0.0L;
-        for (const auto& v : vertices)
-        {
-            sx += v.x;
-            sy += v.y;
-        }
-        return point<t>((t)(sx / n), (t)(sy / n));
-    }
-
-    cx /= (3.0L * a2);
-    cy /= (3.0L * a2);
-    return point<t>((t)cx, (t)cy);
+    area2 *= 3.0;
+    if (std::abs(area2) <= cp_geometry::EPS) return point<double>(0, 0); // fallback
+    return point<double>(cx / area2, cy / area2);
 }
 
-template <typename t>
-bool polygon<t>::is_convex(bool strict) const
-{
+// Time Complexity: O(n)
+// Space Complexity: O(1)
+template <typename T>
+bool is_convex(const polygon<T>& poly) {
+    int n = poly.vertices.size();
     if (n < 3) return false;
-
     int sign = 0;
-    for (int i = 0; i < n; i++)
-    {
-        int j = (i + 1) % n;
-        int k = (i + 2) % n;
-        long double c = point<t>::cross_val(vertices[i], vertices[j], vertices[k]);
-
-        if (fabsl(c) <= cp_geometry::EPS)
-        {
-            if (strict) return false;
-            continue;
-        }
-
+    for (int i = 0; i < n; i++) {
+        long double c = cross_val(poly.vertices[i], poly.vertices[(i + 1) % n], poly.vertices[(i + 2) % n]);
+        if (std::abs(c) <= cp_geometry::EPS) continue;
         int cur = (c > 0 ? 1 : -1);
         if (sign == 0) sign = cur;
-        else if (cur != sign) return false;
+        else if (sign != cur) return false;
     }
-
-    return sign != 0 || !strict;
+    return true;
 }
 
-template <typename t>
-bool polygon<t>::on_boundary(const point<t>& p, double tolerance) const
-{
-    if (n < 2) return false;
-
-    for (int i = 0; i < n; i++)
-    {
-        int j = (i + 1) % n;
-        if (point<t>::on_segment(p, vertices[i], vertices[j], (long double)tolerance)) return true;
-    }
-
-    return false;
-}
-
-template <typename t>
-bool polygon<t>::contains(const point<t>& p, bool include_boundary) const
-{
+// Winding number algorithm
+// Time Complexity: O(n)
+// Space Complexity: O(1)
+template <typename T>
+bool point_in_polygon(const point<T>& p, const polygon<T>& poly, bool include_boundary = true) {
+    int n = poly.vertices.size();
     if (n < 3) return false;
-    if (include_boundary && on_boundary(p)) return true;
-
+    
     int winding = 0;
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         int j = (i + 1) % n;
-        const point<t>& a = vertices[i];
-        const point<t>& b = vertices[j];
-
-        if ((long double)a.y <= (long double)p.y)
-        {
-            if ((long double)b.y > (long double)p.y)
-            {
-                long double c = point<t>::cross_val(a, b, p);
-                if (c > cp_geometry::EPS) winding++;
+        if (include_boundary && on_segment(p, poly.vertices[i], poly.vertices[j])) return true;
+        
+        const point<T>& a = poly.vertices[i];
+        const point<T>& b = poly.vertices[j];
+        
+        if (a.y <= p.y) {
+            if (b.y > p.y) {
+                if (cross_val(a, b, p) > cp_geometry::EPS) winding++;
             }
-        }
-        else
-        {
-            if ((long double)b.y <= (long double)p.y)
-            {
-                long double c = point<t>::cross_val(a, b, p);
-                if (c < -cp_geometry::EPS) winding--;
+        } else {
+            if (b.y <= p.y) {
+                if (cross_val(a, b, p) < -cp_geometry::EPS) winding--;
             }
         }
     }
-
     return winding != 0;
 }
 
-template <typename t>
-double polygon<t>::distance_to(const point<t>& p) const
-{
-    if (contains(p, true)) return 0.0;
-    if (n == 0) return 0.0;
+// Sutherland-Hodgman clipping against a line
+// Time Complexity: O(n)
+// Space Complexity: O(n)
+template <typename T>
+polygon<T> cut_polygon(const polygon<T>& poly, const line<T>& cutting_line, bool keep_left = true) {
+    std::vector<point<T>> out;
+    int n = poly.vertices.size();
+    if (n == 0) return polygon<T>();
 
-    double best = 1e100;
-    for (int i = 0; i < n; i++)
-    {
-        int j = (i + 1) % n;
-        line<t> e(vertices[i], vertices[j]);
-        best = min(best, e.distance(p).first);
-    }
+    for (int i = 0; i < n; i++) {
+        const point<T>& cur = poly.vertices[i];
+        const point<T>& nxt = poly.vertices[(i + 1) % n];
 
-    return best;
-}
-
-template <typename t>
-point<t> polygon<t>::closest_point(const point<t>& p) const
-{
-    if (n == 0) return point<t>(0, 0);
-    if (contains(p, true)) return p;
-
-    double best = 1e100;
-    point<t> ans = vertices[0];
-
-    for (int i = 0; i < n; i++)
-    {
-        int j = (i + 1) % n;
-        line<t> e(vertices[i], vertices[j]);
-        auto [d, q] = e.distance(p);
-        if (d < best)
-        {
-            best = d;
-            ans = q;
-        }
-    }
-
-    return ans;
-}
-
-template <typename t>
-polygon<t> polygon<t>::translate(const point<t>& delta) const
-{
-    vector<point<t>> out;
-    out.reserve(n);
-    for (const auto& v : vertices) out.push_back(v + delta);
-    return polygon<t>(out);
-}
-
-template <typename t>
-polygon<t> polygon<t>::rotate_around(const point<t>& pivot, double angle, bool in_degrees) const
-{
-    vector<point<t>> out;
-    out.reserve(n);
-    for (const auto& v : vertices) out.push_back(v.rotate_around(pivot, angle, in_degrees));
-    return polygon<t>(out);
-}
-
-template <typename t>
-polygon<t> polygon<t>::rotate(double angle, bool in_degrees) const
-{
-    return rotate_around(centroid(), angle, in_degrees);
-}
-
-template <typename t>
-polygon<t> polygon<t>::scale_from(const point<t>& pivot, double factor) const
-{
-    vector<point<t>> out;
-    out.reserve(n);
-    for (const auto& v : vertices) out.push_back(v.scale_from(pivot, factor));
-    return polygon<t>(out);
-}
-
-template <typename t>
-polygon<t> polygon<t>::scale(double factor) const
-{
-    return scale_from(centroid(), factor);
-}
-
-template <typename t>
-polygon<t> polygon<t>::scale_at_middle(double factor) const
-{
-    return scale(factor);
-}
-
-template <typename t>
-polygon<t> polygon<t>::increase_at_middle(double factor) const
-{
-    if (factor < 0) factor = -factor;
-    return scale(factor);
-}
-
-template <typename t>
-polygon<t> polygon<t>::decrease_at_middle(double factor) const
-{
-    if (factor <= (double)cp_geometry::EPS) return *this;
-    return scale(1.0 / factor);
-}
-
-template <typename t>
-polygon<t> polygon<t>::cut_by_line(const line<t>& cutting_line, bool keep_left) const
-{
-    if (n == 0) return polygon<t>();
-
-    vector<point<t>> out;
-    out.reserve(n + 2);
-
-    for (int i = 0; i < n; i++)
-    {
-        const point<t>& cur = vertices[i];
-        const point<t>& nxt = vertices[(i + 1) % n];
-
-        long double sc = side_value(cutting_line.a, cutting_line.b, cur);
-        long double sn = side_value(cutting_line.a, cutting_line.b, nxt);
+        long double sc = cross_val(cutting_line.a, cutting_line.b, cur);
+        long double sn = cross_val(cutting_line.a, cutting_line.b, nxt);
 
         bool in_cur = keep_left ? (sc >= -cp_geometry::EPS) : (sc <= cp_geometry::EPS);
         bool in_nxt = keep_left ? (sn >= -cp_geometry::EPS) : (sn <= cp_geometry::EPS);
 
-        if (in_cur && in_nxt)
-        {
+        if (in_cur && in_nxt) {
             out.push_back(nxt);
-        }
-        else if (in_cur && !in_nxt)
-        {
-            out.push_back(segment_line_intersection(cur, nxt, cutting_line.a, cutting_line.b));
-        }
-        else if (!in_cur && in_nxt)
-        {
-            out.push_back(segment_line_intersection(cur, nxt, cutting_line.a, cutting_line.b));
+        } else if (in_cur && !in_nxt) {
+            auto intersection = line_intersection(line<T>(cur, nxt), cutting_line);
+            if (intersection.first) out.push_back(intersection.second);
+        } else if (!in_cur && in_nxt) {
+            auto intersection = line_intersection(line<T>(cur, nxt), cutting_line);
+            if (intersection.first) out.push_back(intersection.second);
             out.push_back(nxt);
         }
     }
-
-    if (out.empty()) return polygon<t>();
-
-    vector<point<t>> clean;
-    clean.reserve(out.size());
-    for (const auto& p : out)
-    {
-        if (clean.empty() || !point<t>::same_point(clean.back(), p)) clean.push_back(p);
-    }
-
-    if ((int)clean.size() >= 2 && point<t>::same_point(clean.front(), clean.back())) clean.pop_back();
-
-    return polygon<t>(clean);
+    return polygon<T>(out);
 }
 
-template <typename t>
-polygon<t> polygon<t>::cut_by_polygon(const polygon<t>& clipper, bool keep_boundary) const
-{
-    if (n == 0 || clipper.n < 3) return polygon<t>();
-
-    polygon<t> result = *this;
-    bool ccw = clipper.signed_area() >= 0.0;
-
-    for (int i = 0; i < clipper.n && result.n > 0; i++)
-    {
-        int j = (i + 1) % clipper.n;
-        line<t> edge(clipper.vertices[i], clipper.vertices[j]);
-
-        bool keep_left = ccw;
-        if (!keep_boundary)
-        {
-            result = result.cut_by_line(edge, keep_left);
-
-            vector<point<t>> strict;
-            strict.reserve(result.n);
-            for (const auto& p : result.vertices)
-            {
-                long double s = side_value(edge.a, edge.b, p);
-                bool inside = keep_left ? (s > cp_geometry::EPS) : (s < -cp_geometry::EPS);
-                if (inside) strict.push_back(p);
-            }
-            result.set_vertices(strict);
-        }
-        else
-        {
-            result = result.cut_by_line(edge, keep_left);
-        }
+// Convex Polygon intersection using Sutherland-Hodgman
+// Time Complexity: O(n * m)
+// Space Complexity: O(n + m)
+template <typename T>
+polygon<T> polygon_intersection(const polygon<T>& p1, const polygon<T>& p2) {
+    polygon<T> result = p1;
+    int n2 = p2.vertices.size();
+    if (n2 < 3) return polygon<T>();
+    
+    long double sum = 0;
+    for(int i=0; i<n2; ++i) {
+        sum += cross_product(p2.vertices[i], p2.vertices[(i+1)%n2]);
     }
+    bool ccw = (sum >= 0);
 
+    for (int i = 0; i < n2 && !result.vertices.empty(); i++) {
+        line<T> edge(p2.vertices[i], p2.vertices[(i + 1) % n2]);
+        result = cut_polygon(result, edge, ccw);
+    }
     return result;
 }
 
-template <typename t>
-polygon<t> polygon<t>::cut(const line<t>& cutting_line, bool keep_left) const
-{
-    return cut_by_line(cutting_line, keep_left);
+// Monotone Chain algorithm
+// Time Complexity: O(n log n)
+// Space Complexity: O(n)
+template <typename T>
+std::vector<point<T>> convex_hull(std::vector<point<T>> pts, bool keep_collinear = false) {
+    if (pts.size() <= 2) return pts;
+    std::sort(pts.begin(), pts.end());
+    pts.erase(std::unique(pts.begin(), pts.end()), pts.end());
+    
+    std::vector<point<T>> lower, upper;
+    for (const auto& p : pts) {
+        while (lower.size() >= 2) {
+            long double c = cross_val(lower[lower.size() - 2], lower.back(), p);
+            if (keep_collinear ? (c < -cp_geometry::EPS) : (c <= cp_geometry::EPS)) lower.pop_back();
+            else break;
+        }
+        lower.push_back(p);
+    }
+    for (int i = (int)pts.size() - 1; i >= 0; i--) {
+        const auto& p = pts[i];
+        while (upper.size() >= 2) {
+            long double c = cross_val(upper[upper.size() - 2], upper.back(), p);
+            if (keep_collinear ? (c < -cp_geometry::EPS) : (c <= cp_geometry::EPS)) upper.pop_back();
+            else break;
+        }
+        upper.push_back(p);
+    }
+    lower.pop_back();
+    upper.pop_back();
+    lower.insert(lower.end(), upper.begin(), upper.end());
+    return lower;
 }
 
-template <typename t>
-polygon<t> polygon<t>::cut(const polygon<t>& clipper, bool keep_boundary) const
-{
-    return cut_by_polygon(clipper, keep_boundary);
+// Rotating Calipers algorithm
+// Time Complexity: O(n log n)
+// Space Complexity: O(n)
+template <typename T>
+double polygon_diameter(const std::vector<point<T>>& pts) {
+    std::vector<point<T>> hull = convex_hull(pts);
+    int m = hull.size();
+    if (m <= 1) return 0.0;
+    if (m == 2) return distance(hull[0], hull[1]);
+    
+    double best = 0.0;
+    int j = 1;
+    for (int i = 0; i < m; i++) {
+        int ni = (i + 1) % m;
+        while (true) {
+            int nj = (j + 1) % m;
+            long double cur = cross_val(hull[i], hull[ni], hull[j]);
+            long double nxt = cross_val(hull[i], hull[ni], hull[nj]);
+            if (nxt > cur + cp_geometry::EPS) j = nj;
+            else break;
+        }
+        best = std::max(best, distance(hull[i], hull[j]));
+        best = std::max(best, distance(hull[ni], hull[j]));
+    }
+    return best;
 }
 
-template <typename t>
-polygon<t> polygon<t>::intersect(const polygon<t>& other, bool keep_boundary) const
-{
-    return cut_by_polygon(other, keep_boundary);
+// O(log n) inclusion test for convex polygon (vertices must be strictly CCW or CW, usually CCW)
+// Time Complexity: O(log n)
+// Space Complexity: O(1)
+template <typename T>
+bool point_in_convex_polygon(const point<T>& p, const polygon<T>& poly) {
+    int n = poly.vertices.size();
+    if (n < 3) return false;
+    
+    const auto& v = poly.vertices;
+    if (orientation(v[0], v[1], p) < 0 || orientation(v[0], v[n - 1], p) > 0)
+        return false;
+        
+    int l = 1, r = n - 1;
+    while (r - l > 1) {
+        int mid = l + (r - l) / 2;
+        if (orientation(v[0], v[mid], p) >= 0) l = mid;
+        else r = mid;
+    }
+    return orientation(v[l], v[r], p) >= 0;
 }
 
-template <typename t>
-polygon<t> polygon<t>::unite(const polygon<t>& other, bool keep_collinear) const
-{
-    vector<point<t>> all = vertices;
-    all.insert(all.end(), other.vertices.begin(), other.vertices.end());
-    return polygon<t>(cp_geometry::convex_hull_points(all, keep_collinear));
+// Helper GCD for Pick's Theorem
+// Time Complexity: O(log(min(a, b)))
+inline long long cp_gcd(long long a, long long b) {
+    while (b) {
+        a %= b;
+        std::swap(a, b);
+    }
+    return a;
 }
 
-template <typename t>
-polygon<t> polygon<t>::reflect(const line<t>& axis) const
-{
-    vector<point<t>> out;
-    out.reserve(n);
-    for (const auto& v : vertices) out.push_back(v.reflect(axis.a, axis.b));
-    return polygon<t>(out);
+// Time Complexity: O(n)
+// Space Complexity: O(1)
+template <typename T>
+long long boundary_lattice_points(const polygon<T>& poly) {
+    long long b = 0;
+    int n = poly.vertices.size();
+    for (int i = 0; i < n; i++) {
+        int j = (i + 1) % n;
+        long long dx = std::abs((long long)poly.vertices[i].x - (long long)poly.vertices[j].x);
+        long long dy = std::abs((long long)poly.vertices[i].y - (long long)poly.vertices[j].y);
+        b += cp_gcd(dx, dy);
+    }
+    return b;
 }
 
-template <typename t>
-polygon<t> polygon<t>::reflect_x() const
-{
-    vector<point<t>> out;
-    out.reserve(n);
-    for (const auto& v : vertices) out.push_back(v.reflect_x());
-    return polygon<t>(out);
+// Pick's Theorem: Area = Interior + Boundary/2 - 1
+// Time Complexity: O(n)
+// Space Complexity: O(1)
+template <typename T>
+long long interior_lattice_points(const polygon<T>& poly) {
+    long long A2 = std::round(polygon_area(poly) * 2.0); // 2 * Area
+    long long b = boundary_lattice_points(poly);
+    return (A2 - b + 2) / 2;
 }
 
-template <typename t>
-polygon<t> polygon<t>::reflect_y() const
-{
-    vector<point<t>> out;
-    out.reserve(n);
-    for (const auto& v : vertices) out.push_back(v.reflect_y());
-    return polygon<t>(out);
-}
-
-template <typename t>
-template <typename Func>
-polygon<t> polygon<t>::transform(Func func) const
-{
-    vector<point<t>> out;
-    out.reserve(n);
-    for (const auto& v : vertices) out.push_back(func(v));
-    return polygon<t>(out);
+// Minkowski sum of two convex polygons
+// Time Complexity: O(n + m)
+// Space Complexity: O(n + m)
+template <typename T>
+polygon<T> minkowski_sum(const polygon<T>& P, const polygon<T>& Q) {
+    auto reorder = [](std::vector<point<T>> pts) {
+        int pos = 0;
+        for (int i = 1; i < (int)pts.size(); i++) {
+            if (pts[i].y < pts[pos].y || (pts[i].y == pts[pos].y && pts[i].x < pts[pos].x))
+                pos = i;
+        }
+        std::rotate(pts.begin(), pts.begin() + pos, pts.end());
+        return pts;
+    };
+    std::vector<point<T>> p1 = reorder(P.vertices);
+    std::vector<point<T>> p2 = reorder(Q.vertices);
+    int n = p1.size(), m = p2.size();
+    if (n == 0 || m == 0) return polygon<T>();
+    p1.push_back(p1[0]); p1.push_back(p1[1]);
+    p2.push_back(p2[0]); p2.push_back(p2[1]);
+    std::vector<point<T>> res;
+    int i = 0, j = 0;
+    while (i < n || j < m) {
+        res.push_back(p1[i] + p2[j]);
+        double cross = cross_val(point<T>(0,0), p1[i + 1] - p1[i], p2[j + 1] - p2[j]);
+        if (cross >= 0 && i < n) ++i;
+        if (cross <= 0 && j < m) ++j;
+    }
+    return polygon<T>(res);
 }

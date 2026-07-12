@@ -1,244 +1,216 @@
-// Point Template (standalone)
-// Dependencies: None
-
 #pragma once
-
 #include <bits/stdc++.h>
-
 using namespace std;
 
-namespace cp_geometry
-{
+namespace cp_geometry {
     static const long double PI = acos(-1.0L);
     static const long double EPS = 1e-9L;
-}
-
-template <typename T>
-struct point
-{
-    T x, y;
-
-    point() : x(0), y(0) {}
-    point(T x_, T y_) : x(x_), y(y_) {}
-    point(const point& other) : x(other.x), y(other.y) {}
     
-    point operator + (const point& o) const { return point(x + o.x, y + o.y); }
-    point operator - (const point& o) const { return point(x - o.x, y - o.y); }
-    point operator + (T k) const { return point(x + k, y + k); }
-    point operator - (T k) const { return point(x - k, y - k); }
-    point operator * (T k) const { return point(x * k, y * k); }
-    point operator / (T k) const { return point(x / k, y / k); }
-    friend point operator * (T k, const point& p) { return p * k; }
-
-    point& operator += (const point& o) { return *this = *this + o; }
-    point& operator -= (const point& o) { return *this = *this - o; }
-    point& operator += (T k) { return *this = *this + k; }
-    point& operator -= (T k) { return *this = *this - k; }
-    point& operator *= (T k) { return *this = *this * k; }
-    point& operator /= (T k) { return *this = *this / k; }
-
-    bool operator < (const point& o) const { return (x != o.x) ? x < o.x : y < o.y ; }
-    bool operator > (const point& o) const { return (x != o.x) ? x > o.x : y > o.y ; }
-    bool operator <= (const point& o) const { return (x != o.x) ? x <= o.x : y <= o.y ; }
-    bool operator >= (const point& o) const { return (x != o.x) ? x >= o.x : y >= o.y ; }
-    bool operator == (const point& o) const { return x == o.x && y == o.y; }
-    point& operator = (const point& o) { if (this != &o) x = o.x, y = o.y; return *this; }
-
-    // Dot product between two vectors.
-    T dot(const point& o) const { return x * o.x + y * o.y; }
-
-    // 2D cross product value (signed area * 2 of parallelogram).
-    T cross(const point& o) const { return x * o.y - y * o.x; }
-
-    // Cross product of vectors (b - a) and (c - a).
-    static T cross(const point& a, const point& b, const point& c)
-    {
-        return (b - a).cross(c - a);
-    }
-
-    // Cross product of (b - a) x (c - a) in long double.
-    // Useful for robust orientation tests when T may overflow.
-    static long double cross_val(const point& a, const point& b, const point& c)
-    {
-        return ((long double)b.x - (long double)a.x) * ((long double)c.y - (long double)a.y) -
-               ((long double)b.y - (long double)a.y) * ((long double)c.x - (long double)a.x);
-    }
-
-    // Sign function with tolerance.
-    static int sgn(long double v, long double eps = cp_geometry::EPS)
-    {
+    int sgn(long double v, long double eps = EPS) {
         if (fabsl(v) <= eps) return 0;
         return (v < 0 ? -1 : 1);
     }
-
-    // Orientation of ordered triple (a, b, c).
-    // Returns: 1 (CCW), -1 (CW), 0 (collinear).
-    // Depends on: cross_val(), sgn().
-    // Time Complexity: O(1).
-    static int orientation(const point& a, const point& b, const point& c, long double eps = cp_geometry::EPS)
-    {
-        return sgn(cross_val(a, b, c), eps);
-    }
-
-    // Check if x lies between l and r with tolerance.
-    // Time Complexity: O(1).
-    static bool between(T x, T l, T r, long double eps = cp_geometry::EPS)
-    {
-        long double lx = (long double)l;
-        long double rx = (long double)r;
-        if (lx > rx) swap(lx, rx);
-        long double xx = (long double)x;
-        return xx + eps >= lx && xx - eps <= rx;
-    }
-
-    // Check if p lies on segment [a, b] with tolerance.
-    // Depends on: orientation(), between().
-    // Time Complexity: O(1).
-    static bool on_segment(const point& p, const point& a, const point& b, long double eps = cp_geometry::EPS)
-    {
-        if (orientation(a, b, p, eps) != 0) return false;
-        return between(p.x, a.x, b.x, eps) && between(p.y, a.y, b.y, eps);
-    }
-
-    // Near-equality check between two points using squared distance.
-    // Time Complexity: O(1).
-    static bool same_point(const point& a, const point& b, long double eps = cp_geometry::EPS)
-    {
-        long double dx = (long double)a.x - (long double)b.x;
-        long double dy = (long double)a.y - (long double)b.y;
-        return dx * dx + dy * dy <= eps * eps;
-    }
-
-    // Squared vector length (avoids square root).
-    // Time Complexity: O(1).
-    T norm2() const { return x * x + y * y; }
-
-    // Euclidean vector length.
-    // Depends on: norm2().
-    // Time Complexity: O(1).
-    double len() const { return sqrt((double)norm2()); }
-
-    // Rotate vector by +90 degrees (counterclockwise).
-    // Time Complexity: O(1).
-    point perp() const { return point(-y, x); }
-
-    // Euclidean distance between two points.
-    // Depends on: len().
-    // Time Complexity: O(1).
-    static double dist(const point& a, const point& b)
-    {
-        return (a - b).len();
-    }
-
-    // Rotate around origin by angle (radians by default).
-    // Time Complexity: O(1).
-    point rotate(double angle, bool in_degrees = false) const
-    {
-        if (in_degrees) angle = angle * (double)cp_geometry::PI / 180.0;
-        double c = cos(angle);
-        double s = sin(angle);
-        return point((T)(x * c - y * s), (T)(x * s + y * c));
-    }
-
-    // Rotate around a custom pivot point.
-    // Depends on: rotate().
-    // Time Complexity: O(1).
-    point rotate_around(const point& pivot, double angle, bool in_degrees = false) const
-    {
-        return (*this - pivot).rotate(angle, in_degrees) + pivot;
-    }
-
-    // Reflect current point across line through p1 and p2.
-    // Depends on: norm2(), dot().
-    // Time Complexity: O(1).
-    point reflect(const point& p1, const point& p2) const
-    {
-        point v = p2 - p1;
-        point u = *this - p1;
-        double v2 = (double)v.norm2();
-        if (v2 <= (double)cp_geometry::EPS) return *this;
-        double t_val = (double)u.dot(v) / v2;
-        point proj = p1 + v * (T)t_val;
-        return proj * (T)2 - *this;
-    }
-
-    // Reflection across x-axis.
-    // Time Complexity: O(1).
-    point reflect_x() const { return point(x, -y); }
-
-    // Reflection across y-axis.
-    // Time Complexity: O(1).
-    point reflect_y() const { return point(-x, y); }
-
-    // Scale point from origin by factor.
-    // Time Complexity: O(1).
-    point scale(double factor) const
-    {
-        return point((T)(x * factor), (T)(y * factor));
-    }
-
-    // Scale point around pivot by factor.
-    // Depends on: scale().
-    // Time Complexity: O(1).
-    point scale_from(const point& pivot, double factor) const
-    {
-        return pivot + (*this - pivot).scale(factor);
-    }
-
-    // Polar angle of vector from origin.
-    // Time Complexity: O(1).
-    double angle(bool in_degrees = false) const
-    {
-        double ang = atan2((double)y, (double)x);
-        if (in_degrees) ang = ang * 180.0 / (double)cp_geometry::PI;
-        return ang;
-    }
-
-    // Signed angle from vector a to vector b.
-    // Depends on: cross(), dot().
-    // Time Complexity: O(1).
-    static double angle_between(const point& a, const point& b, bool in_degrees = false)
-    {
-        double ang = atan2((double)a.cross(b), (double)a.dot(b));
-        if (in_degrees) ang = ang * 180.0 / (double)cp_geometry::PI;
-        return ang;
-    }
-
-    // Unit-length vector in the same direction.
-    // Depends on: len().
-    // Time Complexity: O(1).
-    point normalize() const
-    {
-        double l = len();
-        if (l <= (double)cp_geometry::EPS) return point(0, 0);
-        return point((T)(x / l), (T)(y / l));
-    }
-
-    // Read point from input stream.
-    // Time Complexity: O(1).
-    friend istream& operator >> (istream& in, point& p)
-    {
-        in >> p.x >> p.y;
-        return in;
-    }
-
-    // Write point to output stream.
-    // Time Complexity: O(1).
-    friend ostream& operator << (ostream& out, const point& p)
-    {
-        out << p.x << " " << p.y;
-        return out;
-    }
-};
-
-namespace cp_geometry
-{
-    // Forward declaration (for include-order friendliness).
-    // Defined in Convex_Hull.cpp.
-    template <typename T>
-    vector<point<T>> convex_hull_points(vector<point<T>> pts, bool keep_collinear = false);
 }
 
+template <typename T>
+struct point {
+    T x, y;
+    point() : x(0), y(0) {}
+    point(T x_, T y_) : x(x_), y(y_) {}
+    
+    point operator + (const point& o) const { return point(x + o.x, y + o.y); }
+    point operator - (const point& o) const { return point(x - o.x, y - o.y); }
+    point operator * (T k) const { return point(x * k, y * k); }
+    point operator / (T k) const { return point(x / k, y / k); }
+    
+    bool operator < (const point& o) const { return (x != o.x) ? x < o.x : y < o.y; }
+    bool operator == (const point& o) const { return x == o.x && y == o.y; }
+};
 
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+T dot_product(const point<T>& a, const point<T>& b) {
+    return a.x * b.x + a.y * b.y;
+}
 
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+T cross_product(const point<T>& a, const point<T>& b) {
+    return a.x * b.y - a.y * b.x;
+}
 
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+T cross_product(const point<T>& a, const point<T>& b, const point<T>& c) {
+    return cross_product(b - a, c - a);
+}
+
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+long double cross_val(const point<T>& a, const point<T>& b, const point<T>& c) {
+    return ((long double)b.x - a.x) * ((long double)c.y - a.y) - ((long double)b.y - a.y) * ((long double)c.x - a.x);
+}
+
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+T norm2(const point<T>& a) {
+    return a.x * a.x + a.y * a.y;
+}
+
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+double length(const point<T>& a) {
+    return sqrt((double)norm2(a));
+}
+
+// Returns: 1 (CCW), -1 (CW), 0 (collinear)
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+int orientation(const point<T>& a, const point<T>& b, const point<T>& c) {
+    return cp_geometry::sgn(cross_val(a, b, c));
+}
+
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+bool on_segment(const point<T>& p, const point<T>& a, const point<T>& b) {
+    if (orientation(a, b, p) != 0) return false;
+    return p.x >= std::min(a.x, b.x) && p.x <= std::max(a.x, b.x) &&
+           p.y >= std::min(a.y, b.y) && p.y <= std::max(a.y, b.y);
+}
+
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+double distance(const point<T>& a, const point<T>& b) {
+    return length(a - b);
+}
+
+// Rotate around origin
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+point<T> rotate(const point<T>& p, double angle) {
+    double c = cos(angle), s = sin(angle);
+    return point<T>((T)(p.x * c - p.y * s), (T)(p.x * s + p.y * c));
+}
+
+// Rotate around pivot
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+point<T> rotate_around(const point<T>& p, const point<T>& pivot, double angle) {
+    return rotate(p - pivot, angle) + pivot;
+}
+
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+point<T> project_vector(const point<T>& v, const point<T>& onto) {
+    double d = dot_product(v, onto) / (double)norm2(onto);
+    return point<T>((T)(onto.x * d), (T)(onto.y * d));
+}
+
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+point<T> reflect(const point<T>& p, const point<T>& a, const point<T>& b) {
+    point<T> ab = b - a;
+    point<T> ap = p - a;
+    double t = dot_product(ap, ab) / (double)norm2(ab);
+    point<T> proj(a.x + ab.x * t, a.y + ab.y * t);
+    return point<T>(2 * proj.x - p.x, 2 * proj.y - p.y);
+}
+
+// Sort points by polar angle around a pivot
+// Time Complexity: O(n log n)
+// Space Complexity: O(1)
+template <typename T>
+void polar_sort(std::vector<point<T>>& pts, const point<T>& pivot) {
+    auto half = [&](const point<T>& p) {
+        return p.y > pivot.y || (p.y == pivot.y && p.x > pivot.x);
+    };
+    std::sort(pts.begin(), pts.end(), [&](const point<T>& a, const point<T>& b) {
+        int ha = half(a), hb = half(b);
+        if (ha != hb) return ha < hb;
+        long double cross = cross_val(pivot, a, b);
+        if (std::abs(cross) > cp_geometry::EPS) return cross > 0;
+        return norm2(a - pivot) < norm2(b - pivot);
+    });
+}
+
+// Closest pair of points using Divide and Conquer
+// Time Complexity: O(n log n)
+// Space Complexity: O(n)
+template <typename T>
+double closest_pair(std::vector<point<T>> pts) {
+    if (pts.size() < 2) return 0.0;
+    std::sort(pts.begin(), pts.end(), [](const point<T>& a, const point<T>& b) {
+        return a.x < b.x || (a.x == b.x && a.y < b.y);
+    });
+    
+    std::vector<point<T>> t(pts.size());
+    
+    auto solve = [&](auto& self, int l, int r) -> double {
+        if (r - l <= 3) {
+            double best = 1e18;
+            for (int i = l; i < r; ++i)
+                for (int j = i + 1; j < r; ++j)
+                    best = std::min(best, distance(pts[i], pts[j]));
+            std::sort(pts.begin() + l, pts.begin() + r, [](const point<T>& a, const point<T>& b) {
+                return a.y < b.y;
+            });
+            return best;
+        }
+        
+        int mid = (l + r) / 2;
+        T midx = pts[mid].x;
+        double best = std::min(self(self, l, mid), self(self, mid, r));
+        
+        std::merge(pts.begin() + l, pts.begin() + mid, pts.begin() + mid, pts.begin() + r, t.begin(), 
+            [](const point<T>& a, const point<T>& b) { return a.y < b.y; });
+        std::copy(t.begin(), t.begin() + (r - l), pts.begin() + l);
+        
+        int tsz = 0;
+        for (int i = l; i < r; ++i) {
+            if (std::abs(pts[i].x - midx) < best) {
+                for (int j = tsz - 1; j >= 0 && pts[i].y - t[j].y < best; --j) {
+                    best = std::min(best, distance(pts[i], t[j]));
+                }
+                t[tsz++] = pts[i];
+            }
+        }
+        return best;
+    };
+    return solve(solve, 0, pts.size());
+}
+
+// Angle between two vectors
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+double angle_between(const point<T>& a, const point<T>& b) {
+    double dot = dot_product(a, b);
+    double det = cross_product(a, b);
+    return std::atan2(det, dot);
+}
+
+// Angle bisector of a, b, c (ray from b)
+// Time Complexity: O(1)
+// Space Complexity: O(1)
+template <typename T>
+point<double> angle_bisector(const point<T>& a, const point<T>& b, const point<T>& c) {
+    point<double> ba(a.x - b.x, a.y - b.y);
+    point<double> bc(c.x - b.x, c.y - b.y);
+    double len_ba = length(ba);
+    double len_bc = length(bc);
+    if (len_ba <= cp_geometry::EPS || len_bc <= cp_geometry::EPS) return point<double>(0, 0);
+    return point<double>(ba.x / len_ba + bc.x / len_bc, ba.y / len_ba + bc.y / len_bc);
+}

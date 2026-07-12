@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 using namespace std;
-const long long inf = 1LL << 61;
 
+<<<<<<< HEAD
 struct Dinic
 {
       struct edge
@@ -232,6 +232,10 @@ void solve_general()
 using namespace std;
 const long long inf = 1LL << 61;
 
+=======
+
+const long long inf = 1LL << 61;
+>>>>>>> 4ad03e1 (Refactor and enhance geometric and graph algorithms)
 struct Dinic {
     struct edge {
         int to, rev;
@@ -356,7 +360,45 @@ struct Dinic {
         }
         return res;
     }
+
+    vector<int> get_path_flow() {
+        vector<int> res;
+        while (true) {
+            int ans = inf;
+            int u = s;
+            
+            vector<edge*> path_edges; 
+            vector<bool> vis(n, false);
+            vis[u] = true;
+
+            while (u != t) {
+                bool found = false;
+                for (auto &e : g[u]) {
+                    if (e.flow > 0 && !vis[e.to]) {
+                        ans = min(ans, (int)e.flow);
+                        path_edges.push_back(&e);
+                        u = e.to;
+                        vis[u] = true;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) break;
+            }
+            
+            if (u != t) break;
+            
+            for (auto ep : path_edges) {
+                ep->flow -= ans;
+            }
+            
+            res.push_back(ans);
+        }
+        return res;
+    }
 };
+
+
 
 void solve_bipartite() {
     int n, m, p;
@@ -384,6 +426,23 @@ void solve_bipartite() {
     for (int i = 1; i <= p; i++) {
         if (F.flow_through[i] == 1) {
             cout << edges[i].first << " " << edges[i].second << endl;
+        }
+    }
+
+    // By Kőnig's Theorem: 
+    // Minimum Vertex Cover = (Unvisited Left Nodes) UNION (Visited Right Nodes)
+    
+    // Print unvisited rows (Left side: 1 to n)
+    for (int i = 1; i <= n; i++) {
+        if (!F.vis[i]) {
+            cout << 1 << " " << i << "\n"; 
+        }
+    }
+
+    // Print visited columns (Right side: n+1 to 2n)
+    for (int i = 1; i <= n; i++) {
+        if (F.vis[i + n]) {
+            cout << 2 << " " << i << "\n"; 
         }
     }
 }

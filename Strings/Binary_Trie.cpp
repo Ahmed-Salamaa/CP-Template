@@ -1,43 +1,9 @@
-#include <bits/stdc++.h>
-
-using namespace std;
-#define PI acos(-1)
-#define sz(s) (int)(s.size())
-#define rall(s) s.rbegin(), s.rend()
-#define ceill(x, y) ((x + y - 1) / y)
-#define all(vec) vec.begin(), vec.end()
-#define Time cerr << "Time elapsed: " << 1.0 * clock() / CLOCKS_PER_SEC << " s.\n";
-
-int tt, tc;
-typedef long long ll;
-typedef long double ld;
-const ll INF = 1LL << 60;
-const int mod = 1e9 + 7, N = 1e6 + 5;
-
-template <typename T = int> istream &operator>>(istream &in, vector<T> &v) {
-    for (auto &x : v) in >> x;
-    return in;
-}
-
-template <typename T = int> ostream &operator<<(ostream &out, const vector<T> &v) {
-    for (const T &x : v) out << x << ' ';
-    return out;
-}
+#include <limits>
+#include <algorithm>
+#include <cassert>
 
 template <typename T = int> class Binary_Trie {
   
-
-#ifdef LOCAL
-    ~Binary_Trie() {
-        function<void(Node *)> dfs = [&](Node *cur) {
-            if (!cur) return;
-            for (int i = 0; i < 2; ++i) dfs(cur->child[i]);
-            delete cur;
-        };
-        dfs(root);
-    }
-#endif
-
     private:
         struct Node {
             int freq;
@@ -79,20 +45,6 @@ template <typename T = int> class Binary_Trie {
             return true;
         }
 
-        inline T get_max_xor(const T x) {
-            T ans = 0;
-            Node *cur = root;
-            for (int i = LOG; ~i; i--) {
-                bool bit = get_bit(x, i);
-                if (cur->child[!bit] and cur->child[!bit]->freq) {
-                    ans |= (1LL << i);
-                    cur = cur->child[!bit];
-                } else
-                    cur = cur->child[bit];
-            }
-            return ans;
-        }
-
         // number of pairs such that (p ^ val) <= k
         inline T count_less_equal(const T x, const T k) {
             T ans = 0;
@@ -110,28 +62,146 @@ template <typename T = int> class Binary_Trie {
             return ans;
         }
 
-        T max_or(T x) const {
-            Node* cur = root;
-            T ans = 0;
+        inline T count_in_range(const T l, const T r) {
+            if (l > r) return 0;
+            T right_cnt = count_less_equal(0, r);
+            T left_cnt = (l == 0) ? 0 : count_less_equal(0, l - 1);
+            return right_cnt - left_cnt;
+        }
 
+        inline T get_max_xor(const T x, const T l, const T r) {
+            T ans = 0, prefix = 0;
+            Node *cur = root;
+            for (int i = LOG; ~i; i--) {
+                bool bit = get_bit(x, i);
+                bool target = !bit;
+                
+                auto check_branch = [&](bool b) {
+                    if (!cur->child[b] or !cur->child[b]->freq) return false;
+                    T P_min = prefix | (T(b) << i);
+                    T P_max = P_min | ((1LL << i) - 1);
+                    T L = std::max(l, P_min);
+                    T R = std::min(r, P_max);
+                    if (L > R) return false;
+                    if (L <= P_min and R >= P_max) return true;
+                    return count_in_range(L, R) > 0;
+                };
+
+                if (check_branch(target)) {
+                    ans |= (1LL << i);
+                    prefix |= (T(target) << i);
+                    cur = cur->child[target];
+                } else if (check_branch(!target)) {
+                    prefix |= (T(!target) << i);
+                    cur = cur->child[!target];
+                } else return -1;
+            }
+            return ans;
+        }
+
+        inline T get_min_xor(const T x, const T l, const T r) {
+            T ans = 0, prefix = 0;
+            Node *cur = root;
+            for (int i = LOG; ~i; i--) {
+                bool bit = get_bit(x, i);
+                bool target = bit;
+                
+                auto check_branch = [&](bool b) {
+                    if (!cur->child[b] or !cur->child[b]->freq) return false;
+                    T P_min = prefix | (T(b) << i);
+                    T P_max = P_min | ((1LL << i) - 1);
+                    T L = std::max(l, P_min);
+                    T R = std::min(r, P_max);
+                    if (L > R) return false;
+                    if (L <= P_min and R >= P_max) return true;
+                    return count_in_range(L, R) > 0;
+                };
+
+                if (check_branch(target)) {
+                    prefix |= (T(target) << i);
+                    cur = cur->child[target];
+                } else if (check_branch(!target)) {
+                    ans |= (1LL << i);
+                    prefix |= (T(!target) << i);
+                    cur = cur->child[!target];
+                } else return -1; 
+            }
+            return ans;
+        }
+
+        inline T get_max_or(const T x, const T l, const T r) {
+            T ans = 0, prefix = 0;
+            Node* cur = root;
             for (int i = LOG; i >= 0; i--) {
-                bool xb = bit(x, i);
+                bool xb = get_bit(x, i);
+
+                auto check_branch = [&](bool b) {
+                    if (!cur->child[b] or !cur->child[b]->freq) return false;
+                    T P_min = prefix | (T(b) << i);
+                    T P_max = P_min | ((1LL << i) - 1);
+                    T L = std::max(l, P_min);
+                    T R = std::min(r, P_max);
+                    if (L > R) return false;
+                    if (L <= P_min and R >= P_max) return true;
+                    return count_in_range(L, R) > 0;
+                };
 
                 if (xb == 0) {
                     // try to make OR bit = 1
-                    if (cur->child[1] && cur->child[1]->freq) {
-                        ans |= (T(1) << i);
+                    if (check_branch(1)) {
+                        ans |= (1LL << i);
+                        prefix |= (1LL << i);
                         cur = cur->child[1];
-                    } else {
+                    } else if (check_branch(0)) {
                         cur = cur->child[0];
-                    }
+                    } else return -1;
                 } else {
                     // OR bit is already 1
-                    ans |= (T(1) << i);
-                    if (cur->child[1] && cur->child[1]->freq)
+                    ans |= (1LL << i);
+                    if (check_branch(1)) {
+                        prefix |= (1LL << i);
                         cur = cur->child[1];
-                    else
+                    } else if (check_branch(0)) {
                         cur = cur->child[0];
+                    } else return -1;
+                }
+            }
+            return ans;
+        }
+
+        inline T get_min_or(const T x, const T l, const T r) {
+            T ans = 0, prefix = 0;
+            Node *cur = root;
+            for (int i = LOG; ~i; i--) {
+                bool xb = get_bit(x, i);
+                
+                auto check_branch = [&](bool b) {
+                    if (!cur->child[b] or !cur->child[b]->freq) return false;
+                    T P_min = prefix | (T(b) << i);
+                    T P_max = P_min | ((1LL << i) - 1);
+                    T L = std::max(l, P_min);
+                    T R = std::min(r, P_max);
+                    if (L > R) return false;
+                    if (L <= P_min and R >= P_max) return true;
+                    return count_in_range(L, R) > 0;
+                };
+
+                if (xb == 1) {
+                    ans |= (1LL << i);
+                    if (check_branch(0)) {
+                        cur = cur->child[0];
+                    } else if (check_branch(1)) {
+                        prefix |= (1LL << i);
+                        cur = cur->child[1];
+                    } else return -1;
+                } else {
+                    if (check_branch(0)) {
+                        cur = cur->child[0];
+                    } else if (check_branch(1)) {
+                        ans |= (1LL << i);
+                        prefix |= (1LL << i);
+                        cur = cur->child[1];
+                    } else return -1;
                 }
             }
             return ans;
@@ -154,20 +224,18 @@ template <typename T = int> class Binary_Trie {
 
         inline T size() { return cnt ; }
 
-        inline T max_xor(const T x) { return get_max_xor(x); }
-
-        inline T min_xor(const T x) { return ((1LL << LOG) - 1) ^ get_max_xor(x ^ ((1LL << LOG) - 1)); }
-
-        inline T max_or(const T x) { return get_max_or(x) ; } 
-
-        inline T min_or(const T x) { return x | (~get_max_or(~x)); }
-
         inline T count(const T x, const T k) { return count_less_equal(x, k); }
 
         inline T count_greater(const T x, const T k) { return cnt - count_less_equal(x, k); }
+
+        inline T max_xor(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) { return get_max_xor(x, l, r) ; }
+
+        inline T min_xor(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) { return get_min_xor(x, l, r) ; }
+
+        inline T max_or(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) { return get_max_or(x, l, r) ; } 
+
+        inline T min_or(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) { return get_min_or(x, l, r) ; }
 };
-
-
 
 void Accepted() {}
 

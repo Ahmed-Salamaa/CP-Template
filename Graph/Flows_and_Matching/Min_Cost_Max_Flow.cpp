@@ -8,8 +8,11 @@ using namespace std;
 // fails for negative cycles
 // for undirected edges just make the directed flag false
 
+// very important with doubles change dijkstra compers
+
 using T = long long;
 const T inf = 1LL << 61;
+<<<<<<< HEAD
 struct MCMF
 {
       struct edge
@@ -228,6 +231,9 @@ using namespace std;
 
 using T = long long;
 const T inf = 1LL << 61;
+=======
+const T EPS = 1e-14;
+>>>>>>> 4ad03e1 (Refactor and enhance geometric and graph algorithms)
 struct MCMF {
     struct edge {
         int u, v;
@@ -274,13 +280,20 @@ struct MCMF {
             int u = q.top().second;
             T nw = q.top().first;
             q.pop();
-            if (nw != d[u]) continue;
+
+            if (nw != d[u]) continue; // intger
+            // if (nw > d[u] + EPS) continue; // double
+
             for (int i = 0; i < (int)g[u].size(); i++) {
                 int id = g[u][i];
                 int v = e[id].v;
                 T cap = e[id].cap;
                 T w = e[id].cost + potential[u] - potential[v];
-                if (d[u] + w < d[v] && cap > 0) {
+
+                // w = max((T)0.0, w); // double
+
+                // if (d[u] + w < d[v] - EPS && cap > 0) { // double
+                if (d[u] + w < d[v] && cap > 0) { // intger
                     d[v] = d[u] + w;
                     par[v] = id;
                     q.push(pair<T, T>(d[v], v));
@@ -344,7 +357,50 @@ struct MCMF {
         }
         return make_pair(flow, cost);
     }
+
+    // Call this AFTER solve() , and edges must has a uniqe id to decompose the flow into distinct paths
+    vector<vector<int>> extract_paths() {
+        vector<T> remaining_flow = flow_through;
+        vector<vector<int>> extracted_paths;
+        
+        auto get_path = [&](auto& self, int u, T cur_flow, vector<int>& path) -> T {
+            if (u == t) return cur_flow; 
+            
+            for (int edge_idx : g[u]) {
+                auto& cur_edge = e[edge_idx];
+                int orig_id = cur_edge.id;
+                
+                if (orig_id >= 0 && remaining_flow[orig_id] > 0) {
+                    path.push_back(cur_edge.v);
+                    
+                    T pushed = self(self, cur_edge.v, min(cur_flow, remaining_flow[orig_id]), path);
+                    
+                    if (pushed > 0) {
+                        remaining_flow[orig_id] -= pushed;
+                        return pushed;
+                    }
+                    
+                    path.pop_back(); 
+                }
+            }
+            return 0; 
+        };
+
+        while (true) {
+            vector<int> current_path;
+            current_path.push_back(s); 
+            
+            T flow_in_path = get_path(get_path, s, inf, current_path);
+            
+            if (flow_in_path == 0) break; 
+            
+            extracted_paths.push_back(current_path);
+        }
+        
+        return extracted_paths;
+    }
 };
+
 
 void solve_bipartite() {
     int n;
