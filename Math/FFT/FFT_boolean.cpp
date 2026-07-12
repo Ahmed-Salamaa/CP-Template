@@ -1,7 +1,9 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-const int N = 100'000; // Adjusted for complexity limits ( Upper than this will get tle )
+#define int long long
+
+const int N = 100'000; // Adjusted for complexity limits ( can take big limits try with yourself )
 
 // Function to multiply two bitsets (Boolean Convolution)
 // Time Complexity: O(S * N / 64) where S is the number of set bits in B.
@@ -35,4 +37,27 @@ bitset<N> power(bitset<N> base, int k) {
         k /= 2;
     }
     return res;
+}
+
+// with this constrains
+// Used: 12484 ms, 12 KB At Codeforces
+
+
+signed main() {
+    ultimate_tips();
+
+    int n = 10'000 ;
+
+    bitset <N> curr ;
+
+    for ( int i = 0 ; i < n ; i ++ )
+    {
+        power( curr , 1e18 ) ;
+    }
+    
+    cout << "Done" ;
+
+
+    // end() ;
+    return 0;
 }
