@@ -23,14 +23,15 @@ ll LDE(ll a, ll b, ll c, ll &x, ll &y, ll &found)
         x *= c / g, y *= c / g;
     return g;
 }
+
 // solves the system of linear congruences
 // x ≡ rems[i] (mod mods[i]) for all i
 ll congurence_system(vector<ll> &rems, vector<ll> &mods)
 {
     ll rem = rems[0], mod = mods[0];
-    for (int i = 1;i < (int)rems.size();i++)
+    for (int i = 1; i < (int)rems.size(); i++)
     {
-        ll x, y, found, a = mods[i], b = -mods[i], c = rems[i] - rem;
+        ll x, y, found, a = mod, b = mods[i], c = rems[i] - rem;
         ll g = LDE(a, b, c, x, y, found);
         if (!found) return -1; // no solution
 
@@ -38,5 +39,10 @@ ll congurence_system(vector<ll> &rems, vector<ll> &mods)
         mod = (mod / g) * mods[i];
         rem = (rem % mod + mod) % mod;
     }
-    return rem;
+    
+    // --- CHOOSE YOUR RETURN TYPE ---
+    return rem;                      // Minimum Non-Negative (X >= 0)
+    // return rem == 0 ? mod : rem;  // Minimum Strictly Positive (X > 0)
+    // return rem - mod;             // Maximum Strictly Negative (X < 0)
+    // return {rem, mod};            // All Solutions: X = rem + (k * mod) for any integer k
 }
