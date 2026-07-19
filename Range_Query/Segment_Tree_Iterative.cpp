@@ -3,7 +3,7 @@ using namespace std;
 #define ll long long
 
 // 0-based indexing
-class Segtree {
+struct Segtree {
     int sz;
     vector<ll> seg;
     ll none = 0;
