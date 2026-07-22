@@ -1,123 +1,74 @@
-#include <bits/stdc++.h>
-using namespace std;
+#include "../core.h"
 
+/** Topic: Palindromic Tree */
+template <typename T = int, int Base = 1>
 struct PalindromicTree {
     struct Node {
-        vector<int> next;   // transitions
-        int link;           // suffix link
-        int len;            // length of palindrome
-        long long occ;      // occurrence count
-        int firstPos;       // ending position of first occurrence (1‐based)
+        vector<int> nxt;
+        int lnk, len, pos;
+        long long occ;
 
-        Node(int sigma = 0, int L = 0)
-          : next(sigma, 0), link(0), len(L), occ(0), firstPos(-1) {}
+        Node(int S = 0, int L = 0) : nxt(S, 0), lnk(0), len(L), pos(-1), occ(0) {}
     };
 
-    vector<Node> tree;
-    string s;            // processed string (with dummy prefix)
-    int last;            // node for longest suffix palindrome so far
-    int SIGMA;           // alphabet size
-    char BASE;           // offset character
+    vector<Node> t;
+    string s;
+    int last;
+    int SIGMA;
+    char BASE;
 
-    // maxLen = expected max length of the string,
-    // sigma = alphabet size,
-    // base  = first character in your alphabet (e.g. 'a' or '0')
-    PalindromicTree(int maxLen, int sigma, char base)
-      : s("#"), last(1), SIGMA(sigma), BASE(base)
-    {
-        tree.reserve(maxLen + 3);
-        tree.emplace_back(sigma, -1);  // imaginary root (len = -1)
-        tree.emplace_back(sigma,  0);  // empty root     (len = 0)
-        tree[0].link = 0;
-        tree[1].link = 0;
+    PalindromicTree(int mxL, int S = 26, char B = 'a') : s("#"), last(1), SIGMA(S), BASE(B) {
+        t.reserve(mxL + 3);
+        t.emplace_back(S, -1);
+        t.emplace_back(S, 0);
     }
 
-    // Add s[pos]=ch (pos is 1‐based)
-    void addChar(char ch, int pos) {
+    void add(char ch, int p) {
         int c = ch - BASE;
-        s.push_back(ch);
-        int cur = last;
-        // 1) Find the longest suffix-palindrome that can be extended
-        while (true) {
-            int curlen = tree[cur].len;
-            if (pos - 1 - curlen >= 0 && s[pos - 1 - curlen] == ch)
-                break;
-            cur = tree[cur].link;
+        s += ch;
+        int u = last;
+
+        while (s[p - 1 - t[u].len] != ch) {
+            u = t[u].lnk;
         }
-        // 2) If the extension already exists, just bump occ:
-        if (tree[cur].next[c]) {
-            last = tree[cur].next[c];
-            tree[last].occ++;
+
+        if (t[u].nxt[c]) {
+            last = t[u].nxt[c];
+            t[last].occ++;
             return;
         }
-        // 3) Otherwise create a new node:
-        last = tree[cur].next[c] = tree.size();
-        tree.emplace_back(SIGMA, tree[cur].len + 2);
-        tree[last].occ = 1;
-        tree[last].firstPos = pos;
 
-        // 4) Set its suffix link:
-        if (tree[last].len == 1) {
-            // single‐char palindrome always links to empty root
-            tree[last].link = 1;
+        last = t[u].nxt[c] = t.size();
+        t.emplace_back(SIGMA, t[u].len + 2);
+        t[last].occ = 1;
+        t[last].pos = p;
+
+        if (t[last].len == 1) {
+            t[last].lnk = 1;
         } else {
-            int linkCandidate = tree[cur].link;
-            while (true) {
-                int candLen = tree[linkCandidate].len;
-                if (pos - 1 - candLen >= 0 && s[pos - 1 - candLen] == ch) {
-                    tree[last].link = tree[linkCandidate].next[c];
-                    break;
-                }
-                linkCandidate = tree[linkCandidate].link;
+            int v = t[u].lnk;
+            while (s[p - 1 - t[v].len] != ch) {
+                v = t[v].lnk;
             }
+            t[last].lnk = t[v].nxt[c];
         }
     }
 
-    // After all addChar calls, propagate occ from longer to shorter palindromes
-    void propagateOccurrences() {
-        int sz = tree.size();
-        vector<int> order(sz);
-        iota(order.begin(), order.end(), 0);
-        sort(order.begin(), order.end(),
-             [&](int a, int b){ return tree[a].len > tree[b].len; });
-        for (int v : order) {
-            if (v <= 1) continue;
-            tree[tree[v].link].occ += tree[v].occ;
+    void prop() {
+        for (int i = (int)t.size() - 1; i > 1; i--) {
+            t[t[i].lnk].occ += t[i].occ;
         }
     }
 
-    // Number of distinct palindromic substrings
-    int distinctCount() const {
-        return (int)tree.size() - 2;
+    int distinct() {
+        return (int)t.size() - 2;
     }
 
-    // Total occurrences of all palindromes
-    long long totalOccurrences() const {
+    long long total() {
         long long sum = 0;
-        for (int i = 2; i < (int)tree.size(); i++)
-            sum += tree[i].occ;
+        for (int i = 2; i < (int)t.size(); i++) {
+            sum += t[i].occ;
+        }
         return sum;
     }
 };
-
-int main(){
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    string S = "ababa"; cin >> S ;
-    int n = S.size();
-
-    // For lowercase letters: sigma=26, base='a'
-    PalindromicTree pt(n, 26, 'a');
-
-    for (int i = 0; i < n; i++)
-        pt.addChar(S[i], i+1);
-
-    pt.propagateOccurrences();
-
-    cout << "Distinct palindromes: " << pt.distinctCount() << "\n";
-    cout << "Total occurrences:   " << pt.totalOccurrences() << "\n";
-
-    return 0;
-}
-

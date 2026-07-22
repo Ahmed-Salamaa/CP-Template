@@ -1,6 +1,4 @@
-#include <bits/stdc++.h>
-using namespace std;
-#define ll long long
+#include "../../../core.h"
 
 struct CountLib {
   private:
