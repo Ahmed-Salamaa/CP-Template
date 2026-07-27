@@ -1,9 +1,22 @@
 /*
  * Topic: DP - Line Optimizations
- * Description: Li Chao Tree is a segment tree structure that maintains a set of lines or
- *   segments, allowing O(log X) queries for the minimum or maximum value at any
- *   given coordinate x.
+ *
+ * dp[i] = toll[i] + min_{j < i} { cost[j] * (x[i] - x[j]) + dp[j] }
+ *
+ * What this calculates:
+ * The minimum total cost to reach position 'i' (dp[i]).
+ * 
+ * Variables:
+ * - toll[i] : A fixed fee/toll we must pay just for landing on 'i'.
+ * - j < i   : We look at all previous positions 'j' to find the best place to jump from.
+ * 
+ * For each possible previous position 'j', we calculate the jump cost:
+ * - dp[j]                 : The total cost it took to reach 'j'.
+ * - cost[j] * (x[i]-x[j]) : The travel cost from 'j' to 'i' (rate at j * distance).
+ * 
+ * We find the 'j' that gives the smallest total jump cost, and add it to toll[i].
  */
+
 #include "../../core.h"
 
 /*
