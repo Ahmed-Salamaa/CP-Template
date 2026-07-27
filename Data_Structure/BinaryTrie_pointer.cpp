@@ -24,7 +24,26 @@ class BinaryTrie_pointer {
     Node* root;
     int LOG, cnt;
 
-    inline void add(const T x) {
+    // Helper to get a specific bit
+    inline bool get_bit(const T x, const int bit) const { return (x >> bit) & 1; }
+
+    // Helper to count elements in range [l, r]
+    inline T count_in_range(const T l, const T r) {
+        if (l > r) return 0;
+        T right_cnt = count(0, r);
+        T left_cnt = (l == 0) ? 0 : count(0, l - 1);
+        return right_cnt - left_cnt;
+    }
+
+   public:
+    // Constructor taking the maximum number of bits (LOG)
+    BinaryTrie_pointer(int log = 31) : root(new Node()), LOG(log), cnt(0) {}
+
+    /*
+     * Inserts the value `x` into the Binary Trie.
+     * @param x: The value to be inserted.
+     */
+    inline void insert(const T x) {
         ++cnt;  // inc number of elements in the trie
         Node* cur = root;
         for (int i = LOG; ~i; i--) {
@@ -35,20 +54,39 @@ class BinaryTrie_pointer {
         }
     }
 
-    void erase(const T x, const int bit, Node* curr) {
-        if (bit < 0) {
-            --cnt;
-            return;
+    /*
+     * Erases one occurrence of the value `x` from the Binary Trie.
+     * Asserts that `x` is present in the trie before erasing.
+     * @param x: The value to be erased.
+     */
+    inline void erase(const T x) {
+        assert(search(x));  // element must be present in the trie
+        --cnt;
+        Node* path[65];
+        path[LOG + 1] = root;
+        Node* cur = root;
+        for (int i = LOG; ~i; i--) {
+            bool bit = get_bit(x, i);
+            cur = cur->child[bit];
+            path[i] = cur;
         }
-        bool bit_val = get_bit(x, bit);
-        erase(x, bit - 1, curr->child[bit_val]);
-        if (--curr->child[bit_val]->freq == 0) {
-            delete curr->child[bit_val];
-            curr->child[bit_val] = nullptr;
+        for (int i = 0; i <= LOG; i++) {
+            bool bit = get_bit(x, i);
+            Node* current = path[i];
+            Node* parent = path[i + 1];
+            if (--current->freq == 0) {
+                delete current;
+                parent->child[bit] = nullptr;
+            }
         }
     }
 
-    inline bool find(const T x) {
+    /*
+     * Searches for the presence of the value `x` in the Binary Trie.
+     * @param x: The value to search for.
+     * @return: True if `x` is in the trie, False otherwise.
+     */
+    inline bool search(const T x) {
         Node* cur = root;
         for (int i = LOG; ~i; i--) {
             bool bit = get_bit(x, i);
@@ -58,8 +96,19 @@ class BinaryTrie_pointer {
         return true;
     }
 
-    // number of elements such that (p ^ x) <= k
-    inline T count_less_equal(const T x, const T k) {
+    /*
+     * Returns the total number of elements currently stored in the trie.
+     * @return: The total count of elements.
+     */
+    inline T size() { return cnt; }
+
+    /*
+     * Counts the number of elements `p` in the trie such that (p ^ x) <= k.
+     * @param x: The base value for the XOR operation.
+     * @param k: The upper bound for the XOR result.
+     * @return: The count of matching elements.
+     */
+    inline T count(const T x, const T k) {
         T ans = 0;
         Node* cur = root;
         for (int i = LOG; ~i; i--) {
@@ -76,14 +125,23 @@ class BinaryTrie_pointer {
         return ans;
     }
 
-    inline T count_in_range(const T l, const T r) {
-        if (l > r) return 0;
-        T right_cnt = count_less_equal(0, r);
-        T left_cnt = (l == 0) ? 0 : count_less_equal(0, l - 1);
-        return right_cnt - left_cnt;
-    }
+    /*
+     * Counts the number of elements `p` in the trie such that (p ^ x) > k.
+     * @param x: The base value for the XOR operation.
+     * @param k: The lower bound threshold (exclusive) for the XOR result.
+     * @return: The count of matching elements.
+     */
+    inline T count_greater(const T x, const T k) { return cnt - count(x, k); }
 
-    inline T get_max_xor(const T x, const T l, const T r) {
+    /*
+     * Finds the maximum possible XOR result of `x` with any element `p` in the trie,
+     * such that the element `p` falls within the inclusive value range [l, r].
+     * @param x: The value to maximize the XOR with.
+     * @param l: The lower bound for elements to consider (default is 0).
+     * @param r: The upper bound for elements to consider (default is maximum value of T).
+     * @return: The maximum XOR result found, or -1 if no valid element exists in the range.
+     */
+    inline T max_xor(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) {
         T ans = 0, prefix = 0;
         Node* cur = root;
         for (int i = LOG; ~i; i--) {
@@ -114,7 +172,15 @@ class BinaryTrie_pointer {
         return ans;
     }
 
-    inline T get_min_xor(const T x, const T l, const T r) {
+    /*
+     * Finds the minimum possible XOR result of `x` with any element `p` in the trie,
+     * such that the element `p` falls within the inclusive value range [l, r].
+     * @param x: The value to minimize the XOR with.
+     * @param l: The lower bound for elements to consider (default is 0).
+     * @param r: The upper bound for elements to consider (default is maximum value of T).
+     * @return: The minimum XOR result found, or -1 if no valid element exists in the range.
+     */
+    inline T min_xor(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) {
         T ans = 0, prefix = 0;
         Node* cur = root;
         for (int i = LOG; ~i; i--) {
@@ -145,7 +211,15 @@ class BinaryTrie_pointer {
         return ans;
     }
 
-    inline T get_max_or(const T x, const T l, const T r) {
+    /*
+     * Finds the maximum possible OR result of `x` with any element `p` in the trie,
+     * such that the element `p` falls within the inclusive value range [l, r].
+     * @param x: The value to maximize the OR with.
+     * @param l: The lower bound for elements to consider (default is 0).
+     * @param r: The upper bound for elements to consider (default is maximum value of T).
+     * @return: The maximum OR result found, or -1 if no valid element exists in the range.
+     */
+    inline T max_or(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) {
         T ans = 0, prefix = 0;
         Node* cur = root;
         for (int i = LOG; i >= 0; i--) {
@@ -187,7 +261,15 @@ class BinaryTrie_pointer {
         return ans;
     }
 
-    inline T get_min_or(const T x, const T l, const T r) {
+    /*
+     * Finds the minimum possible OR result of `x` with any element `p` in the trie,
+     * such that the element `p` falls within the inclusive value range [l, r].
+     * @param x: The value to minimize the OR with.
+     * @param l: The lower bound for elements to consider (default is 0).
+     * @param r: The upper bound for elements to consider (default is maximum value of T).
+     * @return: The minimum OR result found, or -1 if no valid element exists in the range.
+     */
+    inline T min_or(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) {
         T ans = 0, prefix = 0;
         Node* cur = root;
         for (int i = LOG; ~i; i--) {
@@ -226,36 +308,4 @@ class BinaryTrie_pointer {
         }
         return ans;
     }
-
-   public:
-    BinaryTrie_pointer(int log = 31) : root(new Node()), LOG(log), cnt(0) {}
-
-    inline bool get_bit(const T x, const int bit) const { return (x >> bit) & 1; }
-
-    inline void insert(const T x) { add(x); }
-
-    inline void erase(const T x) {
-        assert(search(x));  // element must be present in the trie
-        erase(x, LOG, root);
-    }
-
-    inline bool search(const T x) { return find(x); }
-
-    inline T size() { return cnt; }
-
-    inline T count(const T x, const T k) { return count_less_equal(x, k); }
-
-    inline T count_greater(const T x, const T k) { return cnt - count_less_equal(x, k); }
-
-    inline T max_xor(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) {
-        return get_max_xor(x, l, r);
-    }
-
-    inline T min_xor(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) {
-        return get_min_xor(x, l, r);
-    }
-
-    inline T max_or(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) { return get_max_or(x, l, r); }
-
-    inline T min_or(const T x, const T l = 0, const T r = std::numeric_limits<T>::max()) { return get_min_or(x, l, r); }
 };
