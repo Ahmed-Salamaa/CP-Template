@@ -18,6 +18,7 @@ const long long INF = 1ll << 62;
 #define all(vec) vec.begin(), vec.end()
 #define sz(x) (int)(x).size()
 
+
 inline void ultimate_tips() {
 
 #ifndef ONLINE_JUDGE
