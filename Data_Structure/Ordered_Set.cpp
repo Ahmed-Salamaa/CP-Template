@@ -45,11 +45,32 @@ struct ordered_multiset {
     int order_of_key(T element) { return tree_structure.order_of_key({element, 0}); }
 
     // O ( log(N) )
-    T find_by_order(int index) { return tree_structure.find_by_order(index)->first; }
+    T find_by_order(int index) {
+        auto it = tree_structure.find_by_order(index);
+        return it != tree_structure.end() ? it->first : T();
+    }
+
+    // O ( log(N) )
+    int count(T element) {
+        return tree_structure.order_of_key({element, std::numeric_limits<int>::max()}) -
+               tree_structure.order_of_key({element, 0});
+    }
+
+    // O ( log(N) ) - Returns the index of the first element >= 'element'
+    int lower_bound_index(T element) { return tree_structure.order_of_key({element, 0}); }
+
+    // O ( log(N) ) - Returns the index of the first element > 'element'
+    int upper_bound_index(T element) { return tree_structure.order_of_key({element, std::numeric_limits<int>::max()}); }
 
     // O ( 1 )
     int size() { return tree_structure.size(); }
 
     // O ( 1 )
     bool empty() { return tree_structure.empty(); }
+
+    // O ( N )
+    void clear() {
+        tree_structure.clear();
+        timer = 0;
+    }
 };
