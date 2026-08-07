@@ -1,63 +1,73 @@
-/* Topic: 3D Fenwick Tree
- * Description: Extends the Fenwick Tree to three dimensions for handling updates and queries
- *   within spatial volumes. Applied in 3D geometry problems or maintaining dynamic
- *   spatial aggregates.
- * Usage: FenwickTree3D<int> ft3(n, m, p); ft3.update(x, y, z, val); ft3.query(x1, y1, z1, x2, y2, z2);
- */
+/*
+    [1] DESCRIPTION
+    A 1-based 3D Binary Indexed Tree (Fenwick Tree) for point updates
+    and 3D subvolume range sum queries in spatial data structures.
+
+    [2] TIME & SPACE COMPLEXITY
+    Build: O(N * M * P)
+    Update/Query: O(log N * log M * log P)
+    Space: O(N * M * P)
+
+    [3] LIMITS
+    N * M * P <= 1e7 due to memory constraints.
+*/
+
 #include "../../core.h"
 
-namespace FenwickTree3DSpace {
+// 1-based indexing
+template <typename T = int>
+class Fenwick_Tree_3D {
+   private:
+    vector<vector<vector<T>>> BIT;
+    int n, m, p;
 
-    template<typename T = int>
-    struct FenwickTree3D {
-        int n, m, p;
-        vector<vector<vector<T>>> bit;
+   public:
+    Fenwick_Tree_3D() = default;
 
-        // Time Complexity: O(N * M * P)
-        // Space Complexity: O(N * M * P)
-        FenwickTree3D(int rows, int cols, int depths) {
-            n = rows;
-            m = cols;
-            p = depths;
-            bit.assign(n + 1, vector<vector<T>>(m + 1, vector<T>(p + 1, 0)));
+    // Initialize empty 3D BIT with dimensions n x m x p
+    Fenwick_Tree_3D(int n, int m, int p) : n(n), m(m), p(p) {
+        BIT.assign(n + 5, vector<vector<T>>(m + 5, vector<T>(p + 5, 0)));
+    }
+
+    // Initialize and build 2D BIT from 3D vector (0-based or 1-based source input)
+    Fenwick_Tree_3D(int n, int m, int p, const vector<vector<vector<T>>>& arr) : n(n), m(m), p(p) {
+        BIT.assign(n + 5, vector<T>(m + 5, 0));
+        for (int i = 1; i <= n; i++)
+            for (int j = 1; j <= m; j++)
+                for (int k = 1; k <= p; k++) add(i, j, arr[i][j]);
+    }
+
+    // Set arr[idx_x][idx_y][idx_z] = val
+    void assign(int idx_x, int idx_y, int idx_z, T val) {
+        T prv = query(idx_x, idx_y, idx_z, idx_x, idx_y, idx_z);
+        add(idx_x, idx_y, idx_z, val - prv);
+    }
+
+    // Add v to arr[idx_x][idx_y][idx_z]
+    void add(int idx_x, int idx_y, int idx_z, T v) {
+        for (int i = idx_x; i <= n; i += (i & -i)) {
+            for (int j = idx_y; j <= m; j += (j & -j)) {
+                for (int k = idx_z; k <= p; k += (k & -k)) BIT[i][j][k] += v;
+            }
         }
+    }
 
-        // 1-indexed point update
-        // Time Complexity: O(log N * log M * log P)
-        // Space Complexity: O(1)
-        void update(int x, int y, int z, T delta) {
-            for (int i = x; i <= n; i += i & -i) {
-                for (int j = y; j <= m; j += j & -j) {
-                    for (int k = z; k <= p; k += k & -k) {
-                        bit[i][j][k] += delta;
-                    }
-                }
+    // Query prefix sum [1..idx_x][1..idx_y][1..idx_z]
+    T query(int idx_x, int idx_y, int idx_z) {
+        T ans = 0;
+        for (int i = idx_x; i > 0; i -= (i & -i)) {
+            for (int j = idx_y; j > 0; j -= (j & -j)) {
+                for (int k = idx_z; k > 0; k -= (k & -k)) ans += BIT[i][j][k];
             }
         }
 
-        // Time Complexity: O(log N * log M * log P)
-        // Space Complexity: O(1)
-        T query(int x, int y, int z) {
-            T res = 0;
-            for (int i = x; i > 0; i -= i & -i) {
-                for (int j = y; j > 0; j -= j & -j) {
-                    for (int k = z; k > 0; k -= k & -k) {
-                        res += bit[i][j][k];
-                    }
-                }
-            }
-            return res;
-        }
+        return ans;
+    }
 
-        // 1-indexed range query
-        // Time Complexity: O(log N * log M * log P)
-        // Space Complexity: O(1)
-        T query(int x1, int y1, int z1, int x2, int y2, int z2) {
-            return query(x2, y2, z2)
-                 - query(x1 - 1, y2, z2) - query(x2, y1 - 1, z2) - query(x2, y2, z1 - 1)
-                 + query(x1 - 1, y1 - 1, z2) + query(x1 - 1, y2, z1 - 1) + query(x2, y1 - 1, z1 - 1)
-                 - query(x1 - 1, y1 - 1, z1 - 1);
-        }
-    };
-
-} // namespace FenwickTree3DSpace
+    // Query 3D subvolume range sum [x1..x2][y1..y2][z1..z2]
+    T query(int x1, int y1, int z1, int x2, int y2, int z2) {
+        return query(x2, y2, z2) - query(x1 - 1, y2, z2) - query(x2, y1 - 1, z2) - query(x2, y2, z1 - 1) +
+               query(x1 - 1, y1 - 1, z2) + query(x1 - 1, y2, z1 - 1) + query(x2, y1 - 1, z1 - 1) -
+               query(x1 - 1, y1 - 1, z1 - 1);
+    }
+};

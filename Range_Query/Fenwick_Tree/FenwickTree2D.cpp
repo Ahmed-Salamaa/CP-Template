@@ -1,188 +1,65 @@
-/* Topic: 2D Fenwick Tree
- * Description: A multi-dimensional Fenwick Tree that calculates subgrid sums and point updates
- *   over a matrix in O(log^2 N) time. Ideal for dynamic 2D region queries.
- * Usage: 
- *   FenwickTree2D<int> ft2; ft2.init(n, m); ft2.add(x, y, val); ft2.query(r1, c1, r2, c2);
- *   OfflineFenwickTree2D<int> oft2(n, coords); oft2.add(x, y, val); oft2.query(r1, c1, r2, c2);
- *   FenwickTree2DRangeUpdate<int> ft2ru(n, m); ft2ru.add_range(r1, c1, r2, c2, val); ft2ru.query_range(r1, c1, r2, c2);
- */
+/*
+    [1] DESCRIPTION
+    A 1-based 2D Binary Indexed Tree (Fenwick Tree) for point updates
+    and subgrid range sum queries over a 2D matrix.
+
+    [2] TIME & SPACE COMPLEXITY
+    Build: O(N * M * log N * log M)
+    Update/Query: O(log N * log M)
+    Space: O(N * M)
+
+    [3] LIMITS
+    N * M <= 1e7 due to memory constraints.
+*/
+
 #include "../../core.h"
 
-namespace FenwickTree2DSpace {
+// 1-based indexing
+template <typename T>
+class Fenwick_Tree_2D {
+   private:
+    vector<vector<T>> BIT;
+    int n, m;
 
-    template<typename T = int>
-    struct FenwickTree2D {
-        vector<vector<T>> tree;
-        int n, m;
+   public:
+    Fenwick_Tree_2D() = default;
 
-        // Time Complexity: O(N * M)
-        // Space Complexity: O(N * M)
-        void init(int _n, int _m) {
-            n = _n; m = _m;
-            tree.assign(n + 1, vector<T>(m + 1, 0));
+    // Initialize empty BIT with dimensions n x m
+    Fenwick_Tree_2D(int n, int m) : n(n), m(m) { BIT.assign(n + 5, vector<T>(m + 5, 0)); }
+
+    // Initialize and build 2D BIT from 2D vector (0-based or 1-based source input)
+    Fenwick_Tree_2D(int n, int m, const vector<vector<T>>& arr) : n(n), m(m) {
+        BIT.assign(n + 5, vector<T>(m + 5, 0));
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) add(i, j, arr[i][j]);
+        }
+    }
+
+    // Set arr[idx_x][idx_y] = val
+    void assign(int idx_x, int idx_y, T val) {
+        T prv = query(idx_x, idx_y, idx_x, idx_y);
+        add(idx_x, idx_y, val - prv);
+    }
+
+    // Add v to arr[idx_x][idx_y]
+    void add(int idx_x, int idx_y, T v) {
+        for (int i = idx_x; i <= n; i += (i & -i)) {
+            for (int j = idx_y; j <= m; j += (j & -j)) BIT[i][j] += v;
+        }
+    }
+
+    // Query prefix sum [1..idx_x][1..idx_y]
+    T query(int idx_x, int idx_y) {
+        T ans = 0;
+        for (int i = idx_x; i > 0; i -= (i & -i)) {
+            for (int j = idx_y; j > 0; j -= (j & -j)) ans += BIT[i][j];
         }
 
-        // 0-indexed position
-        // Time Complexity: O(log N * log M)
-        // Space Complexity: O(1)
-        void add(int x, int y, T val) {
-            for (int i = x + 1; i <= n; i += (i & (-i))) {
-                for (int j = y + 1; j <= m; j += (j & (-j))) {
-                    tree[i][j] += val;
-                }
-            }
-        }
+        return ans;
+    }
 
-        // 0-indexed position
-        // Time Complexity: O(log N * log M)
-        // Space Complexity: O(1)
-        T get(int x, int y) {
-            T ret = 0;
-            for (int i = x + 1; i > 0; i -= (i & (-i))) {
-                for (int j = y + 1; j > 0; j -= (j & (-j))) {
-                    ret += tree[i][j];
-                }
-            }
-            return ret;
-        }
-
-        // 0-indexed range
-        // Time Complexity: O(log N * log M)
-        // Space Complexity: O(1)
-        T query(int sx, int sy, int ex, int ey) {
-            return get(ex, ey) - get(ex, sy - 1) - get(sx - 1, ey) + get(sx - 1, sy - 1);
-        }
-    };
-
-    template <typename T = int>
-    struct OfflineFenwickTree2D {
-        int n;
-        vector<vector<int>> vals;
-        vector<vector<T>> bit;
-
-        int ind(const vector<int> &v, int x) {
-            return upper_bound(begin(v), end(v), x) - begin(v) - 1;
-        }
-
-        OfflineFenwickTree2D() : n(0) {}
-
-        // n is the limit of the first dimension
-        // Time Complexity: O(Q log^2 Q) for initialization
-        // Space Complexity: O(Q log Q)
-        OfflineFenwickTree2D(int _n, vector<array<int, 2>> &todo) : n(_n), vals(n + 1), bit(n + 1) {
-            sort(begin(todo), end(todo), [](auto &a, auto &b) { return a[1] < b[1]; });
-
-            for (int i = 1; i <= n; i++) vals[i].push_back(0);
-            for (auto p : todo) {
-                int r = p[0], c = p[1];
-                r++, c++;
-                for (; r <= n; r += r & -r) {
-                    if (vals[r].empty() || vals[r].back() != c) vals[r].push_back(c);
-                }
-            }
-            for (int i = 1; i <= n; i++) bit[i].assign(vals[i].size(), 0);
-        }
-
-        // 0-indexed position
-        // Time Complexity: O(log N * log Q)
-        // Space Complexity: O(1)
-        void add(int r, int c, T val) {
-            r++, c++;
-            for (; r <= n; r += r & -r) {
-                int i = ind(vals[r], c);
-                for (; i < sz(bit[r]); i += i & -i) bit[r][i] += val;
-            }
-        }
-
-        // 0-indexed prefix
-        // Time Complexity: O(log N * log Q)
-        // Space Complexity: O(1)
-        T get(int r, int c) {
-            r++, c++;
-            T sum = 0;
-            for (; r > 0; r -= r & -r) {
-                int i = ind(vals[r], c);
-                for (; i > 0; i -= i & -i) sum += bit[r][i];
-            }
-            return sum;
-        }
-
-        // 0-indexed range
-        // Time Complexity: O(log N * log Q)
-        // Space Complexity: O(1)
-        T query(int r1, int c1, int r2, int c2) {
-            return get(r2, c2) - get(r2, c1 - 1) - get(r1 - 1, c2) + get(r1 - 1, c1 - 1);
-        }
-    };
-
-    template<typename T = int>
-    struct FenwickTree2DRangeUpdate {
-        vector<vector<T>> S[4];
-        int n, m;
-
-        // Time Complexity: O(N * M)
-        // Space Complexity: O(N * M)
-        void init(int _n, int _m) {
-            n = _n; m = _m;
-            for(int i = 0; i < 4; i++) {
-                S[i].assign(n + 2, vector<T>(m + 2, 0));
-            }
-        }
-
-        void add_point(int z, int x, int Y, T c) {
-            for(; x <= n + 1; x += x & -x) {
-                for(int y = Y; y <= m + 1; y += y & -y) {
-                    S[z][x][y] += c;
-                }
-            }
-        }
-
-        // add c on [a, inf) x [b, inf)
-        void add_suffix(int a, int b, T c) {
-            add_point(0, a, b, c);
-            add_point(1, a, b, -c * (a - 1));
-            add_point(2, a, b, -c * (b - 1));
-            add_point(3, a, b, c * (a - 1) * (b - 1));
-        }
-
-        // 1-indexed range update
-        // Time Complexity: O(log N * log M)
-        // Space Complexity: O(1)
-        void add_range(int x1, int y1, int x2, int y2, T c) {
-            add_suffix(x1, y1, c);
-            add_suffix(x1, y2 + 1, -c);
-            add_suffix(x2 + 1, y1, -c);
-            add_suffix(x2 + 1, y2 + 1, c);
-        }
-
-        T get_point(int z, int x, int Y) {
-            T res = 0;
-            for(; x > 0; x -= x & -x) {
-                for(int y = Y; y > 0; y -= y & -y) {
-                    res += S[z][x][y];
-                }
-            }
-            return res;
-        }
-
-        // get sum on [1, x] x [1, y]
-        T get_prefix(int x, int y) {
-            if (x <= 0 || y <= 0) return 0;
-            return get_point(0, x, y) * x * y
-                 + get_point(1, x, y) * y
-                 + get_point(2, x, y) * x
-                 + get_point(3, x, y);
-        }
-
-        // 1-indexed range query
-        // Time Complexity: O(log N * log M)
-        // Space Complexity: O(1)
-        T query_range(int x1, int y1, int x2, int y2) {
-            return get_prefix(x2, y2)
-                 - get_prefix(x1 - 1, y2)
-                 - get_prefix(x2, y1 - 1)
-                 + get_prefix(x1 - 1, y1 - 1);
-        }
-    };
-
-} // namespace FenwickTree2DSpace
+    // Query subgrid range sum [x1..x2][y1..y2]
+    T query(int x1, int y1, int x2, int y2) {
+        return query(x2, y2) - query(x1 - 1, y2) - query(x2, y1 - 1) + query(x1 - 1, y1 - 1);
+    }
+};

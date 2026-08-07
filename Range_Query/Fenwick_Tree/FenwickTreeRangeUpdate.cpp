@@ -1,58 +1,77 @@
-/* Topic: Fenwick Tree Range Update
- * Description: Adapts the standard Fenwick Tree to allow both range additions and point/range
- *   queries by maintaining dual trees. Serves as a lightweight alternative to a Lazy
- *   Segment Tree for sum queries.
- * Usage: FenwickTreeRangeUpdate<int> ftru; ftru.init(n); ftru.addRange(l, r, val); ftru.queryRange(l, r);
- */
+/*
+    [1] DESCRIPTION
+    A 1-based Binary Indexed Tree (Fenwick Tree) supporting range updates
+    and range sum queries using dual BIT arrays ($B_1$ and $B_2$). Serves as
+    a lightweight, low-constant-factor alternative to a Lazy Segment Tree.
+
+    [2] TIME & SPACE COMPLEXITY
+    Build: O(N) or O(N log N)
+    Update/Query: O(log N)
+    Space: O(N)
+
+    [3] LIMITS
+    N <= 1e7 due to memory.
+*/
+
 #include "../../core.h"
 
-namespace FenwickTreeRangeUpdateSpace {
+// 1-based indexing
+template <typename T = long long>
+class Fenwick_Tree {
+   private:
+    vector<T> B1, B2;
+    int n;
 
-    template<typename T = int>
-    struct FenwickTreeRangeUpdate {
-        int N;
-        vector<T> m, c;
-
-        // Time Complexity: O(N)
-        // Space Complexity: O(N)
-        void init(int x) {
-            N = x;
-            m.assign(N + 1, 0);
-            c.assign(N + 1, 0);
+    void add_point(int idx, T v) {
+        T v1 = v;
+        T v2 = v * (idx - 1);
+        for (int i = idx; i <= n; i += (i & -i)) {
+            B1[i] += v1;
+            B2[i] += v2;
         }
+    }
 
-        void add(int pos, T mVal, T cVal) {
-            for (++pos; pos <= N; pos += pos & -pos) {
-                m[pos] += mVal;
-                c[pos] += cVal;
-            }
+   public:
+    Fenwick_Tree() = default;
+
+    // Initialize empty BIT with size n
+    Fenwick_Tree(int n) : n(n) {
+        B1.assign(n + 5, 0);
+        B2.assign(n + 5, 0);
+    }
+
+    // Initialize and build BIT from 1-based array
+    Fenwick_Tree(int n, const vector<T>& arr) : n(n) {
+        B1.assign(n + 5, 0);
+        B2.assign(n + 5, 0);
+        for (int i = 1; i <= n; i++) add(i, i, arr[i]);
+    }
+
+    // Add v to range [L, R]
+    void add(int L, int R, T v) {
+        add_point(L, v);
+        add_point(R + 1, -v);
+    }
+
+    // Single point add (convenience wrapper)
+    void add(int idx, T v) { add(idx, idx, v); }
+
+    // Set arr[idx] = val
+    void assign(int idx, T val) {
+        T prv = query(idx, idx);
+        add(idx, idx, val - prv);
+    }
+
+    // Query prefix sum [1, idx]
+    T query(int idx) {
+        T sum_b1 = 0, sum_b2 = 0;
+        for (int i = idx; i > 0; i -= (i & -i)) {
+            sum_b1 += B1[i];
+            sum_b2 += B2[i];
         }
+        return sum_b1 * idx - sum_b2;
+    }
 
-        // Time Complexity: O(log N)
-        // Space Complexity: O(1)
-        T get(int pos) {
-            T ret = 0;
-            int x = pos;
-            for (pos++; pos > 0; pos -= pos & -pos) {
-                ret += m[pos] * x + c[pos];
-            }
-            return ret;
-        }
-
-        // 0-indexed range addition [l, r]
-        // Time Complexity: O(log N)
-        // Space Complexity: O(1)
-        void addRange(int l, int r, T value) {
-            add(l, value, -value * (l - 1));
-            add(r + 1, -value, value * r);
-        }
-
-        // 0-indexed range query [l, r]
-        // Time Complexity: O(log N)
-        // Space Complexity: O(1)
-        T queryRange(int l, int r) {
-            return get(r) - get(l - 1);
-        }
-    };
-
-} // namespace FenwickTreeRangeUpdateSpace
+    // Query range sum [L, R]
+    T query(int L, int R) { return query(R) - query(L - 1); }
+};
