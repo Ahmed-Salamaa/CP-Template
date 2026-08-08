@@ -1,67 +1,96 @@
-/* Topic: Heavy Light Decomposition (Minimal)
- * Description: Heavy-Light Decomposition (HLD) decomposes a tree into a set of disjoint paths,
- *   allowing path queries and updates to be processed using a Segment Tree in
- *   O(log^2 N) time.
- * Usage: HLD<false> hld(G, root); auto paths = hld.queryPath(u, v);
- */
-#include "../../core.h"
+/*
+    [1] Definition:
+    Heavy-Light Decomposition (HLD) splits a tree into straight paths (chains).
+    It converts tree path queries into 1D array ranges for Segment Trees or Fenwick Trees.
 
-template <bool VAL_ON_EDGE = false>
+    [2] Time & Space Complexity:
+    - Build Time: O(N)
+    - Space: O(N)
+    - Path Query / LCA: O(log N) chain jumps
+
+    [3] Important Notes:
+    - Uses 1-based indexing.
+    - VAL_ON_EDGE = 0 for node values, 1 for edge values.
+    - pos[u] maps node u to its 1D position.
+*/
+
+template <typename T = int, const int VAL_ON_EDGE = 0>
 struct HLD {
-    int n, timer;
-    vector<int> par, root, pos, sz, child, dep;
+    // 0 = values on nodes | 1 = values on edges
 
-    void dfs_sz(int u, int p, int d, const vector<vector<int>>& adj) {
-        par[u] = p;
-        dep[u] = d;
-        sz[u] = 1;
-        child[u] = 0;
-        for (int v : adj[u]) {
+    const vector<vector<T>>& adj;
+    vector<T> dep, par, root, pos, SubtreeSz, child;
+    int nxtPos;
+
+    HLD(int n, const vector<vector<T>>& G, int treeRoot = 1) : adj(G) {
+        nxtPos = 1;
+        // Stores heavy child for each node
+        dep = par = root = pos = SubtreeSz = child = vector<T>(n + 5);
+        init(treeRoot);
+        build(treeRoot);
+    }
+
+    // Calculates depth, parent, subtree size, and heavy child
+    void init(int u, int p = -1, int d = 0) {
+        dep[u] = d, par[u] = p, SubtreeSz[u] = 1;
+        for (auto v : adj[u]) {
             if (v == p) continue;
-            dfs_sz(v, u, d + 1, adj);
-            sz[u] += sz[v];
-            if (sz[v] > sz[child[u]]) child[u] = v;
+            init(v, u, d + 1);
+            SubtreeSz[u] += SubtreeSz[v];
+            if (SubtreeSz[v] > SubtreeSz[child[u]]) child[u] = v;
         }
     }
 
-    void dfs_hld(int u, int p, int r, const vector<vector<int>>& adj) {
-        root[u] = r;
-        pos[u] = ++timer;
-        if (child[u]) dfs_hld(child[u], u, r, adj);
-        for (int v : adj[u]) {
-            if (v != p && v != child[u]) dfs_hld(v, u, v, adj);
-        }
-    }
-
-    // Time Complexity: O(N)
-    // Space Complexity: O(N)
-    HLD(const vector<vector<int>>& adj, int treeRoot = 1) {
-        n = sz(adj) - 1;
-        timer = 0;
-        par.assign(n + 1, 0);
-        root.assign(n + 1, 0);
-        pos.assign(n + 1, 0);
-        sz.assign(n + 1, 0);
-        child.assign(n + 1, 0);
-        dep.assign(n + 1, 0);
-        dfs_sz(treeRoot, 0, 0, adj);
-        dfs_hld(treeRoot, 0, treeRoot, adj);
-    }
-
-    // Returns contiguous ranges [l, r] covering the path from u to v.
-    // Time Complexity: O(log N)
-    vector<pair<int, int>> queryPath(int u, int v) {
-        vector<pair<int, int>> ans;
+    // Finds Lowest Common Ancestor (LCA) of u and v
+    int get_lca(int u, int v) {
         while (root[u] != root[v]) {
             if (dep[root[u]] < dep[root[v]]) swap(u, v);
-            ans.push_back({pos[root[u]], pos[u]});
             u = par[root[u]];
         }
-        if (dep[u] > dep[v]) swap(u, v);
-        if (!VAL_ON_EDGE)
-            ans.push_back({pos[u], pos[v]});
-        else if (u != v)
-            ans.push_back({pos[u] + 1, pos[v]});
-        return ans;
+        return dep[u] < dep[v] ? u : v;
+    }
+
+    // Assigns chain roots and flattens tree into 1D positions
+    void build(int u, bool newChain = true) {
+        root[u] = newChain ? u : root[par[u]];
+        pos[u] = nxtPos++;
+        if (child[u]) build(child[u], false);
+        for (auto v : adj[u]) {
+            if (v == par[u] || v == child[u]) continue;
+            build(v, true);
+        }
+    }
+
+    // Ensures u is deeper in the tree than v
+    void makeULower(int& u, int& v) {
+        if (dep[root[u]] < dep[root[v]] || (root[u] == root[v] && dep[u] < dep[v])) swap(u, v);
+    }
+
+    // Moves u up to the parent of its chain root
+    pair<T, T> moveUp(int& u) {
+        pair<T, T> ret = {pos[root[u]], pos[u]};
+        u = par[root[u]];
+        return ret;
+    }
+
+    // Returns 1D array ranges [L, R] covering path from u to v
+    vector<pair<T, T>> queryPath(int u, int v) {
+        vector<pair<T, T>> ret;
+        while (root[u] != root[v]) {
+            makeULower(u, v);
+            ret.push_back(moveUp(u));
+        }
+        makeULower(u, v);
+        if (!VAL_ON_EDGE)  // Include LCA node
+            ret.push_back({pos[v], pos[u]});
+        else if (u != v)  // Skip LCA node for edge values
+            ret.push_back({pos[v] + 1, pos[u]});
+        return ret;
+    }
+
+    // Returns the deeper node representing edge (u, v)
+    int getChild(int u, int v) {
+        if (par[u] == v) return u;
+        return v;
     }
 };
