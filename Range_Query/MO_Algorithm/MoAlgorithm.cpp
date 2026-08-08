@@ -1,84 +1,74 @@
-/* Topic: MO's Algorithm
- * Description: Mo's Algorithm is an elegant offline algorithm that processes range queries by
- *   sorting them block-wise to minimize the movement of pointers. Achieves O(Q *
- *   sqrt(N)) time for querying static arrays.
- * Usage: MO<int> mo(arr, q); mo.process(); mo.print();
- */
+/*
+    [1] Definition:
+    Mo's Algorithm processes range queries [L, R] offline.
+    It sorts queries by block index (sqrt(N)) to minimize overall pointer movement.
+
+    [2] Time & Space Complexity:
+    - Time Complexity: O((N + Q) * sqrt(N))
+    - Space Complexity: O(N + Q)
+
+    [3] Important Notes:
+    - Works for offline queries only (no updates to array).
+    - Uses 1-based indexing.
+    - Set SQ = sqrt(N) for best performance.
+    - 0-based indexing (array - queries)
+*/
+
 #include "../../core.h"
 
-template <typename T = int>
-struct MO struct MO {
-    static int64_t gilbertOrder(int x, int y, int pow, int rotate) {
-        if (pow == 0) return 0;
-        int hpow = 1 << (pow - 1);
-        int seg = (x < hpow) ? ((y < hpow) ? 0 : 3) : ((y < hpow) ? 1 : 2);
-        seg = (seg + rotate) & 3;
-        const int rotateDelta[4] = {3, 0, 0, 1};
-        int nx = x & (x ^ hpow), ny = y & (y ^ hpow);
-        int nrot = (rotate + rotateDelta[seg]) & 3;
-        int64_t subSquareSize = int64_t(1) << (2 * pow - 2);
-        int64_t ans = seg * subSquareSize;
-        int64_t add = gilbertOrder(nx, ny, pow - 1, nrot);
-        ans += (seg == 1 || seg == 2) ? add : (subSquareSize - add - 1);
-        return ans;
+const int N = 200000 + 5;
+const int SQ = 450;
+
+struct Query {
+    int l, r, q_idx, blk_idx;
+
+    Query() {}
+
+    Query(int l, int r, int q_idx) {
+        this->l = l;
+        this->r = r;
+        this->q_idx = q_idx;
+        blk_idx = l / SQ;
     }
 
-    struct node {
-        int l, r, idx;
-        int64_t order;
-
-        node() {}
-
-        node(int l, int r, int idx, int HilbertPow) : l(l), r(r), idx(idx), order(gilbertOrder(l, r, HilbertPow, 0)) {}
-
-        bool operator<(const node& other) const { return order < other.order; }
-    };
-
-    const vector<T>& arr;
-    vector<node> query;
-    vector<int> answer;
-    T ans;
-    int n;
-
-    void init() {
-        // add initialization
-    }
-
-    void add(int idx) {
-        // add element
-    }
-
-    void remove(int idx) {
-        // remove element
-    }
-
-    MO(const vector<T>& arr, int q) : arr(arr), n(sz(arr) - 1), ans(0) {
-        query.resize(q);
-        answer.resize(q);
-        int HilbertPow = 21;
-        for (int i = 0; i < q; i++) {
-            int l, r;
-            cin >> l >> r;
-            if (r < l) swap(l, r);
-            query[i] = node(l, r, i, HilbertPow);
-        }
-        sort(all(query));
-        init();
-    }
-
-    void process() {
-        // Time Complexity: O((N + Q) * sqrt(N))
-        int left = 1, right = 0;
-        for (const auto& q : query) {
-            while (left > q.l) add(--left);
-            while (right < q.r) add(++right);
-            while (left < q.l) remove(left++);
-            while (right > q.r) remove(right--);
-            answer[q.idx] = ans;
-        }
-    }
-
-    void print() {
-        for (const auto& it : answer) cout << it << "\n";
+    bool operator<(const Query& other) const {
+        if (blk_idx != other.blk_idx) return blk_idx < other.blk_idx;
+        return r < other.r;
     }
 };
+
+ll n, q, arr[N], ans[200005];
+Query query[200005];
+
+// change these depending on problem
+ll vis[1000006], res = 0;
+
+// Adds element at arr[idx] to current range
+void add(int idx) {
+    res -= (vis[arr[idx]] * vis[arr[idx]] * arr[idx]);
+    vis[arr[idx]]++;
+    res += (vis[arr[idx]] * vis[arr[idx]] * arr[idx]);
+}
+
+// Removes element at arr[idx] from current range
+void remove(int idx) {
+    res -= (vis[arr[idx]] * vis[arr[idx]] * arr[idx]);
+    vis[arr[idx]]--;
+    res += (vis[arr[idx]] * vis[arr[idx]] * arr[idx]);
+}
+
+// Processes all queries offline
+void procces() {
+    sort(query, query + q);
+    int l = 1, r = 0;
+
+    for (int i = 0; i < q; i++) {
+        while (l < query[i].l) remove(l++);
+        while (l > query[i].l) add(--l);
+        while (r < query[i].r) add(++r);
+        while (r > query[i].r) remove(r--);
+        ans[query[i].q_idx] = res;
+    }
+}
+
+// don't forget to resizing arrays based on problem's constrains

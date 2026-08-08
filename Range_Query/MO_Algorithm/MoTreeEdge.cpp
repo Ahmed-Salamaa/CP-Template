@@ -1,17 +1,32 @@
-/* Topic: MO's Algorithm on Trees (Edges)
- * Description: Adapts Mo's Algorithm to work on tree edges by flattening the tree into an array
- *   using a technique like the Euler Tour. Used to answer offline path queries
- *   involving edge properties.
- * Usage: MoTreeEdge<int> mo(N, M, G, V); mo.getData();
- */
+/*
+    [1] Definition:
+    Mo's Algorithm on Trees answers path queries [u, v] offline.
+    It flattens a tree into a 1D array using Euler Tour (Start/End times),
+    converting tree path queries into 1D range queries.
+
+    [2] Time & Space Complexity:
+    - Build Time: O(N log N)
+    - Query Time: O((N + Q) * sqrt(N))
+    - Space Complexity: O(N log N + Q)
+
+    [3] Important Notes:
+    - Uses 1-based indexing.
+    - VAL_ON_EDGE = false for node values, true for edge values.
+    - Uses Hilbert Curve ordering for fast query sorting.
+    - Fill `add(u)` and `remove(u)` with your problem's logic.
+*/
+
 #include "../../core.h"
 
-template <typename T = int, bool VAL_ON_EDGE = true>
-struct MoTreeEdge struct MoTreeEdge {
+// 1-based Indexing
+template <typename T = int, bool VAL_ON_EDGE = false>
+class MoTree {
+   public:
     struct Query {
         int l, r, k, lca, queryIdx;
         int64_t ord;
 
+        // Maps tree path query between nodes L and R to 1D range [l, r]
         Query(vector<T>& S, vector<T>& E, int L = 0, int R = 0, int QueryIdx = 0, int LCA = 0, int HilbertPow = 0) {
             if (S[L] > S[R]) swap(L, R);
             if (LCA == L)
@@ -21,12 +36,13 @@ struct MoTreeEdge struct MoTreeEdge {
             calcOrder(HilbertPow);
         }
 
-        void calcOrder(int hilbert_pow) { ord = MoTreeEdge::hilbertOrder(l, r, hilbert_pow, 0); }
+        // Calculates Hilbert order for fast query sorting
+        void calcOrder(int hilbert_pow) { ord = MoTree::hilbertOrder(l, r, hilbert_pow, 0); }
 
         bool operator<(const Query& rhs) const { return ord < rhs.ord; }
     };
 
-    MoTreeEdge(int N, int M, vector<vector<pair<int, int>>>& G, vector<T> V = vector<T>(), int root = 1)
+    MoTree(int N, int M, vector<vector<pair<int, int>>>& G, vector<T> V = vector<T>(), int root = 1)
         : curr_l(1), curr_r(0), n(N), m(M), SqrtN(n / sqrt(m) + 1), timer(1), ans(0), answers(M), val(V), adj(G) {
         LOG = calcLog(N);
         helbertPow = calcHilbertPow(2 * N + 1);
@@ -34,6 +50,7 @@ struct MoTreeEdge struct MoTreeEdge {
         FT = vector<int>(2 * n + 5);
         val = vector<T>(n + 5);
         anc = vector<vector<int>>(n + 5, vector<int>(LOG));
+        freq.assign(2 * n + 5, 0);
         dfs(root);
     }
 
@@ -52,34 +69,42 @@ struct MoTreeEdge struct MoTreeEdge {
         return ordd;
     }
 
+    // Reads queries from input and processes them
     void getData() {
         for (int i = 0, u, v; i < m && cin >> u >> v; i++)
             queries.emplace_back(S, E, u, v, i, getLCA(u, v), helbertPow);
         process();
     }
 
+    // Processes all queries offline
     void process() {
-        // Time Complexity: O((N + Q) * sqrt(N))
-        sort(all(queries));
+        sort(queries.begin(), queries.end());
+
         curr_l = queries[0].l, curr_r = queries[0].l - 1;
+
         for (auto& q : queries) {
             setRange(q);
+
+            // If LCA is -1, nodes are in the same subtree
             if (~q.lca && !VAL_ON_EDGE) add(q.lca);
+
             answers[q.queryIdx] = ans;
+
             if (~q.lca && !VAL_ON_EDGE) remove(q.lca);
         }
     }
 
     vector<T> getAnswers() const { return answers; }
 
+   private:
     int curr_l, curr_r, n, m, SqrtN, timer, LOG, helbertPow;
-    T ans;
     vector<T> answers, val;
     vector<int> dep, S, E, FT, nodeFreq;
     vector<vector<pair<int, int>>> adj;
     vector<vector<int>> anc;
     vector<Query> queries;
 
+    // Euler Tour DFS to flatten tree and build binary lifting table
     void dfs(int u, int p = -1) {
         S[u] = timer;
         FT[timer++] = u;
@@ -95,6 +120,7 @@ struct MoTreeEdge struct MoTreeEdge {
         FT[timer++] = u;
     }
 
+    // Returns k-th ancestor of node u
     int kthAncestor(int u, int k) const {
         if (dep[u] < k) return -1;
         for (int bit = LOG - 1; bit >= 0; bit--)
@@ -102,6 +128,7 @@ struct MoTreeEdge struct MoTreeEdge {
         return u;
     }
 
+    // Returns Lowest Common Ancestor (LCA) of u and v
     int getLCA(int u, int v) const {
         if (dep[u] < dep[v]) swap(u, v);
         u = kthAncestor(u, dep[u] - dep[v]);
@@ -111,6 +138,7 @@ struct MoTreeEdge struct MoTreeEdge {
         return anc[u][0];
     }
 
+    // Adjusts current range [curr_l, curr_r] to match query [q.l, q.r]
     void setRange(Query& q) {
         while (curr_l > q.l) operation(--curr_l);
         while (curr_r < q.r) operation(++curr_r);
@@ -118,10 +146,16 @@ struct MoTreeEdge struct MoTreeEdge {
         while (curr_r > q.r) operation(curr_r--);
     }
 
+    vector<int> freq;
+    T ans;
+
+    // Add node u to current path state
     inline void add(int u) {}
 
+    // Remove node u from current path state
     inline void remove(int u) {}
 
+    // Toggles node u presence on the path
     inline void operation(int idx) {
         int u = FT[idx];
         nodeFreq[u] ^= 1;
@@ -144,4 +178,3 @@ struct MoTreeEdge struct MoTreeEdge {
         return pow;
     }
 };
-}  // namespace MoTreeEdgeNamespace
